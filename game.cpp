@@ -1,8 +1,14 @@
 #include "game.hpp"
 #include "textureManager.h"
-SDL_Texture* playerTexture;
-SDL_Rect* srcR, destR;
+#include "GameObject.h"
+#include "map.hpp"
 
+map *Map;
+
+GameObject *player;
+GameObject *enemy;
+
+SDL_Renderer* Game::renderer = nullptr;
 
 Game::Game(){}
 Game::~Game(){};
@@ -23,7 +29,15 @@ void Game::init(const char *title, int xPos, int yPos, int width, int height){
             isRunning = false;
 
         }
-    playerTexture = textureManeger::loadTexture("assets//player_m_1.png",renderer);
+        if(IMG_Init(IMG_INIT_PNG) == 0) {
+            cout << "IMG_Init failed: " << IMG_GetError() << endl;
+            isRunning = false;
+            return;
+        }
+
+    player = new GameObject("assets\\player_m_1.png", 0, 0);
+    enemy = new GameObject("assets\\enemy.png", 50, 50);
+    Map = new map();
     }
 }
 
@@ -39,20 +53,27 @@ void Game::handleEvents(){
     }
 }
 void Game::update(){
-    cnt++;
-    destR.h = 86;
-    destR.w = 32;
-    destR.x = cnt;
-    destR.y = 50;
-    cout << cnt << endl;
+    player->Update();
+    enemy->Update();
 
 }
-
 void Game::render(){
+    // Đặt màu vẽ (background) là trắng
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
-    SDL_RenderCopy(renderer,playerTexture, NULL, &destR);
+
+    // (Tùy chọn) Vẽ một hình chữ nhật kiểm tra để debug renderer
+    /*SDL_Rect testRect = {100, 100, 50, 50};
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    SDL_RenderFillRect(renderer, &testRect);
+    */
+    // Render đối tượng GameObject
+    Map->drawMap();
+    player->Render();
+    enemy->Render();
     SDL_RenderPresent(renderer);
 }
+
 
 void Game::clean(){
     SDL_DestroyWindow(window);

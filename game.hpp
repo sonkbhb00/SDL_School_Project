@@ -1,5 +1,4 @@
 #pragma once
-#include <SDL.h>
 #include <SDL_image.h>
 #include <iostream>
 using namespace std;
@@ -17,11 +16,13 @@ public:
     bool running(){
     return isRunning;};
 
+    static SDL_Renderer* renderer;
+
+
 private:
     bool isRunning;
     int cnt = 0;
     SDL_Window *window;
-    SDL_Renderer * renderer;
 
 };
 
