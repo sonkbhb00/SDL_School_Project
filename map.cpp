@@ -1,5 +1,5 @@
 #include "map.hpp"
-#include "textureManager.h"
+#include "textureManeger.h"
 
 int lv1[30][50] = {
     {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3},

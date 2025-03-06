@@ -1,6 +1,7 @@
 #include "game.hpp"
-#include "textureManager.h"
+#include "textureManeger.h"
 #include "GameObject.h"
+#include "Physics.hpp"
 #include "map.hpp"
 
 map *Map;
@@ -35,8 +36,10 @@ void Game::init(const char *title, int xPos, int yPos, int width, int height){
             return;
         }
 
-    player = new GameObject("assets\\player_m_1.png", 0, 0);
-    enemy = new GameObject("assets\\enemy.png", 50, 50);
+    player = new GameObject("assets\\ani.png", 50, 50, 3, 2 , 1);
+
+
+    //enemy = new GameObject("assets\\enemy.png", 50, 50);
     Map = new map();
     }
 }
@@ -52,11 +55,9 @@ void Game::handleEvents(){
             break;
     }
 }
-void Game::update(){
-    player->Update();
-    enemy->Update();
 
-}
+
+
 void Game::render(){
     // Đặt màu vẽ (background) là trắng
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
@@ -70,10 +71,24 @@ void Game::render(){
     // Render đối tượng GameObject
     Map->drawMap();
     player->Render();
-    enemy->Render();
     SDL_RenderPresent(renderer);
+
 }
 
+void Game::update(){
+    // Lưu lại vị trí hiện tại của player trước khi cập nhật
+    int oldX = player->getX();
+    int oldY = player->getY();
+
+    // Cập nhật player
+    player->Update();
+
+    // Giả sử bạn có một hàm (hoặc getter) getMapMatrix() trong lớp map để lấy lưới bản đồ
+    // Kiểm tra va chạm: nếu player va chạm với tile 0 hoặc 1, revert vị trí
+    if(Physics::checkCollisionWithMap(player, Map->getMapMatrix(), 30, 50, 32, 32)) {
+        player->revertPosition();
+    }
+}
 
 void Game::clean(){
     SDL_DestroyWindow(window);
