@@ -1,98 +1,93 @@
-#include "game.hpp"
-#include "textureManeger.h"
-#include "GameObject.h"
+#include "Game.hpp"
+#include "TextureManager.h"
 #include "Physics.hpp"
-#include "map.hpp"
+#include "TileMap.hpp"
+#include <SDL_image.h>
+#include <iostream>
 
-map *Map;
-
-GameObject *player;
-GameObject *enemy;
+using namespace std;
 
 SDL_Renderer* Game::renderer = nullptr;
 
-Game::Game(){}
-Game::~Game(){};
+Game::Game() : window(nullptr), isRunning(false), player(nullptr), tileMap(nullptr) { }
 
+Game::~Game() {
+    // Giải phóng tài nguyên được tạo ra (nếu chưa clean)
+}
 
-void Game::init(const char *title, int xPos, int yPos, int width, int height){
-    if(SDL_Init(SDL_INIT_EVERYTHING) == 0){
-        cout << "subsys" << endl;
-        window = SDL_CreateWindow(title, xPos, yPos, width,height, SDL_WINDOW_SHOWN);
-        if(window){
-            cout << "window created" << endl;
+void Game::init(const char* title, int xPos, int yPos, int width, int height) {
+    if (SDL_Init(SDL_INIT_EVERYTHING) == 0) {
+        window = SDL_CreateWindow(title, xPos, yPos, width, height, SDL_WINDOW_SHOWN);
+        if (window) {
+            cout << "Window created" << endl;
         }
         renderer = SDL_CreateRenderer(window, -1, 0);
-        if(renderer){
+        if (renderer) {
             isRunning = true;
-        }
-        else{
+        } else {
             isRunning = false;
-
         }
-        if(IMG_Init(IMG_INIT_PNG) == 0) {
+        if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)) {
             cout << "IMG_Init failed: " << IMG_GetError() << endl;
             isRunning = false;
             return;
         }
-
-    player = new GameObject("assets\\ani.png", 50, 50, 3, 2 , 1);
-
-
-    //enemy = new GameObject("assets\\enemy.png", 50, 50);
-    Map = new map();
+        // Khởi tạo đối tượng game
+        player = new GameObject("assets/ani.png", 50, 50, 3, 2, 1);
+        tileMap = new TileMap(); // TileMap tự load dữ liệu level
     }
 }
 
-void Game::handleEvents(){
+void Game::handleEvents() {
     SDL_Event event;
-    SDL_PollEvent(&event);
-    switch (event.type){
-        case SDL_QUIT:
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT) {
             isRunning = false;
-            break;
-        default:
-            break;
+        }
+        if (event.type == SDL_KEYDOWN) {
+            switch (event.key.keysym.sym) {
+                case SDLK_w:
+                    player->move(0, -10);
+                    break;
+                case SDLK_s:
+                    player->move(0, 10);
+                    break;
+                case SDLK_a:
+                    player->move(-10, 0);
+                    break;
+                case SDLK_d:
+                    player->move(10, 0);
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 }
 
-
-
-void Game::render(){
-    // Đặt màu vẽ (background) là trắng
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderClear(renderer);
-
-    // (Tùy chọn) Vẽ một hình chữ nhật kiểm tra để debug renderer
-    /*SDL_Rect testRect = {100, 100, 50, 50};
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-    SDL_RenderFillRect(renderer, &testRect);
-    */
-    // Render đối tượng GameObject
-    Map->drawMap();
-    player->Render();
-    SDL_RenderPresent(renderer);
-
-}
-
-void Game::update(){
-    // Lưu lại vị trí hiện tại của player trước khi cập nhật
-    int oldX = player->getX();
-    int oldY = player->getY();
-
-    // Cập nhật player
-    player->Update();
-
-    // Giả sử bạn có một hàm (hoặc getter) getMapMatrix() trong lớp map để lấy lưới bản đồ
-    // Kiểm tra va chạm: nếu player va chạm với tile 0 hoặc 1, revert vị trí
-    if(Physics::checkCollisionWithMap(player, Map->getMapMatrix(), 30, 50, 32, 32)) {
+void Game::update() {
+    player->update();
+    // Sử dụng các hằng số từ Game để kiểm tra va chạm
+    if (Physics::checkCollisionWithMap(player, tileMap->getMapMatrix(),
+                                       Game::MAP_ROWS, Game::MAP_COLS,
+                                       Game::TILE_SIZE, Game::TILE_SIZE)) {
         player->revertPosition();
     }
 }
 
-void Game::clean(){
+void Game::render() {
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderClear(renderer);
+    tileMap->drawMap();
+    player->render();
+    SDL_RenderPresent(renderer);
+}
+
+void Game::clean() {
     SDL_DestroyWindow(window);
     SDL_DestroyRenderer(renderer);
-    SDL_QUIT;
-    cout << "game cleaned" << endl;
+    SDL_Quit();
+    cout << "Game cleaned" << endl;
+    delete player;
+    delete tileMap;
 }
