@@ -34,42 +34,44 @@
 	<SDL.h>
 	"textureManager.h"
 
-1741278438 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.cpp
-	"game.hpp"
-	"textureManeger.h"
-	"GameObject.h"
+1741280325 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.cpp
+	"Game.hpp"
+	"TextureManager.h"
 	"Physics.hpp"
-	"map.hpp"
-
-1740662096 c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.hpp
+	"TileMap.hpp"
 	<SDL_image.h>
 	<iostream>
 
-1741085334 c:\users\bui son\onedrive\desktop\demo_sdl\demo\texturemanager.h
-	"game.hpp"
+1741280364 c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.hpp
+	<SDL.h>
 
-1741278069 c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.h
-	"game.hpp"
+1741279944 c:\users\bui son\onedrive\desktop\demo_sdl\demo\texturemanager.h
+	"Game.hpp"
+
+1741279944 c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.h
+	"Game.hpp"
 
 1741266053 c:\users\bui son\onedrive\desktop\demo_sdl\demo\map.hpp
 	<SDL.h>
 
-1741278259 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.cpp
+1741279944 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.cpp
 	"GameObject.h"
-	"textureManeger.h"
+	"TextureManager.h"
+	<SDL.h>
 	<iostream>
 
-1741276736 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\main.cpp
-	"game.hpp"
-	"GameObject.h"
+1741279944 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\main.cpp
+	"Game.hpp"
 	<SDL.h>
 
 1741265289 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\map.cpp
 	"map.hpp"
 	"textureManeger.h"
 
-1741085337 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\texturemanager.cpp
-	"textureManager.h"
+1741279944 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\texturemanager.cpp
+	"TextureManager.h"
+	<SDL_image.h>
+	<iostream>
 
 1741266376 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\physics.cpp
 	"Physics.hpp"
@@ -83,4 +85,8 @@
 
 1741085334 c:\users\bui son\onedrive\desktop\demo_sdl\demo\texturemaneger.h
 	"game.hpp"
+
+1741280325 c:\users\bui son\onedrive\desktop\demo_sdl\demo\tilemap.hpp
+	<SDL.h>
+	"Game.hpp"
 
