@@ -1,11 +1,8 @@
 #include "TileMap.hpp"
 #include "TextureManager.h"
 
-constexpr int MAP_ROWS = Game::MAP_ROWS;
-constexpr int MAP_COLS = Game::MAP_COLS;
-
 // Sử dụng level data gốc từ file map.cpp (30 hàng x 50 cột)
-int levelData[MAP_ROWS][MAP_COLS] = {
+int levelData[Game::MAP_ROWS][Game::MAP_COLS] = {
     {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3},
     {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3},
     {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3},
@@ -15,23 +12,20 @@ int levelData[MAP_ROWS][MAP_COLS] = {
     {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3},
     {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3},
     {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3},
-    {1, 3, 3, 1, 1, 1, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {1, 3, 3, 3, 3, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 };
 
 TileMap::TileMap() {
-    dirtTexture = TextureManager::loadTexture("assets/dirt.jpg");
-    grassBlockTexture = TextureManager::loadTexture("assets/grassBlock.jpg");
+    tileSetTexture = TextureManager::loadTexture("assets/Tileset.png");
+
     loadMap(levelData);
     srcRect = { 0, 0, Game::TILE_SIZE, Game::TILE_SIZE };
     destRect = { 0, 0, Game::TILE_SIZE, Game::TILE_SIZE };
 }
 
 TileMap::~TileMap() {
-    // Nếu TextureManager quản lý texture, không cần xóa ở đây
 }
 
 void TileMap::loadMap(int arr[Game::MAP_ROWS][Game::MAP_COLS]) {
@@ -49,10 +43,10 @@ void TileMap::drawMap() {
             destRect.y = row * Game::TILE_SIZE;
             switch (grid[row][col]) {
                 case 0:
-                    TextureManager::draw(dirtTexture, srcRect, destRect);
+                    TextureManager::drawFrame(tileSetTexture, 0, 0, Game::TILE_SIZE, Game::TILE_SIZE, destRect.x, destRect.y);
                     break;
                 case 1:
-                    TextureManager::draw(grassBlockTexture, srcRect, destRect);
+                    TextureManager::drawFrame(tileSetTexture, 1, 1, Game::TILE_SIZE, Game::TILE_SIZE, destRect.x, destRect.y);
                     break;
                 default:
                     break;

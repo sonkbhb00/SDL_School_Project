@@ -34,33 +34,35 @@
 	<SDL.h>
 	"textureManager.h"
 
-1741280325 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.cpp
+1742261971 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.cpp
 	"Game.hpp"
 	"TextureManager.h"
 	"Physics.hpp"
 	"TileMap.hpp"
+	"Combat.hpp"
 	<SDL_image.h>
 	<iostream>
 
-1741280364 c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.hpp
+1742260466 c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.hpp
 	<SDL.h>
 
-1741279944 c:\users\bui son\onedrive\desktop\demo_sdl\demo\texturemanager.h
+1742261971 c:\users\bui son\onedrive\desktop\demo_sdl\demo\texturemanager.h
 	"Game.hpp"
 
-1741279944 c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.h
+1741672652 c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.h
 	"Game.hpp"
+	<SDL.h>
 
 1741266053 c:\users\bui son\onedrive\desktop\demo_sdl\demo\map.hpp
 	<SDL.h>
 
-1741279944 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.cpp
+1742261652 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.cpp
 	"GameObject.h"
 	"TextureManager.h"
+	"Game.hpp"
 	<SDL.h>
-	<iostream>
 
-1741279944 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\main.cpp
+1741672091 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\main.cpp
 	"Game.hpp"
 	<SDL.h>
 
@@ -68,16 +70,16 @@
 	"map.hpp"
 	"textureManeger.h"
 
-1741279944 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\texturemanager.cpp
+1742261977 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\texturemanager.cpp
 	"TextureManager.h"
 	<SDL_image.h>
 	<iostream>
 
-1741266376 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\physics.cpp
+1741655217 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\physics.cpp
 	"Physics.hpp"
-
-1741266376 c:\users\bui son\onedrive\desktop\demo_sdl\demo\physics.hpp
 	<SDL.h>
+
+1741282649 c:\users\bui son\onedrive\desktop\demo_sdl\demo\physics.hpp
 	"GameObject.h"
 
 1741268445 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\texturemaneger.cpp
@@ -86,7 +88,20 @@
 1741085334 c:\users\bui son\onedrive\desktop\demo_sdl\demo\texturemaneger.h
 	"game.hpp"
 
-1741280325 c:\users\bui son\onedrive\desktop\demo_sdl\demo\tilemap.hpp
+1742260236 c:\users\bui son\onedrive\desktop\demo_sdl\demo\tilemap.hpp
 	<SDL.h>
 	"Game.hpp"
+
+1742260236 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\tilemap.cpp
+	"TileMap.hpp"
+	"TextureManager.h"
+
+1742261712 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\combat.cpp
+	"Combat.hpp"
+	"GameObject.h"
+	"TextureManager.h"
+	<SDL.h>
+	<iostream>
+
+1741667082 c:\users\bui son\onedrive\desktop\demo_sdl\demo\combat.hpp
 

@@ -1,10 +1,8 @@
 #pragma once
 #include <SDL.h>
-// Không include "GameObject.h" ở đây để tránh vòng lặp include
-// Thay vào đó, dùng forward declaration:
-class GameObject;
 
-// Forward declaration cho TileMap cũng dùng để tránh vòng lặp include
+// Forward declarations
+class GameObject;
 class TileMap;
 
 class Game {
@@ -12,20 +10,25 @@ public:
     Game();
     ~Game();
 
+    // Khởi tạo game
     void init(const char* title, int xPos, int yPos, int width, int height);
+
+    // Xử lý sự kiện, cập nhật trạng thái và render
     void handleEvents();
     void update();
     void render();
     void clean();
-    bool running() const { return isRunning; }
 
-    // Renderer dùng chung cho toàn bộ game
+    // Trả về trạng thái game (true nếu game đang chạy)
+    bool running();
+
+    // Các hằng số cho map
+    static const int MAP_ROWS = 30;
+    static const int MAP_COLS = 50;
+    static const int TILE_SIZE = 32;
+
+    // Renderer dùng chung
     static SDL_Renderer* renderer;
-
-    // Các hằng số tích hợp trực tiếp vào Game
-    inline static constexpr int TILE_SIZE = 32;
-    inline static constexpr int MAP_ROWS = 30;
-    inline static constexpr int MAP_COLS = 50;
 
 private:
     SDL_Window* window;
