@@ -1,28 +1,40 @@
 #pragma once
-#include <SDL.h>
-#include "GameObject.h"
+#include "GameObject.h" 
+#include "Game.hpp" // For MAP_ROWS, MAP_COLS, TILE_SIZE
+#include <algorithm> // Potentially needed by implementations
+
+// Forward declare GameObject if needed, though likely included
+// class GameObject;
+
+// Collision sides enum (if not already defined elsewhere)
+enum CollisionSide {
+    NONE = 0,
+    TOP = 1,
+    RIGHT = 2,
+    BOTTOM = 3,
+    LEFT = 4
+};
 
 class Physics {
 public:
-    // Kiểm tra va chạm giữa 2 hình chữ nhật (bounding box)
-    static bool checkCollision(const SDL_Rect &a, const SDL_Rect &b) {
-        if (a.x + a.w <= b.x) return false;
-        if (a.x >= b.x + b.w) return false;
-        if (a.y + a.h <= b.y) return false;
-        if (a.y >= b.y + b.h) return false;
-        return true;
-    }
+    // Physics Constants
+    static constexpr float GRAVITY = 0.5f;
+    static constexpr float JUMP_FORCE = -13.86f; // For 6 tiles (192px)
+    static constexpr float MAX_FALL_SPEED = 15.0f;
+    static constexpr float FRICTION = 0.8f;
+    // Add other constants if they existed, like GROUND_Y?
+    // static constexpr int GROUND_Y = ???;
 
-    // Kiểm tra va chạm giữa 2 GameObject (sử dụng bounding box)
-    static bool checkCollision(const GameObject &obj1, const GameObject &obj2) {
-        return checkCollision(obj1.getCollider(), obj2.getCollider());
-    }
+    // Collision Detection
+    // Note: Using Game::MAP_COLS directly in the signature
+    static bool checkCollisionSide(const GameObject *obj, const int mapMatrix[][Game::MAP_COLS], int rows, int tileWidth, int tileHeight, int *collisionSide);
+    
+    // Physics Application
+    static void applyGravity(GameObject* obj);
+    static void applyFriction(GameObject* obj);
+    static void applyJump(GameObject* obj); // May need modification depending on how jump was handled
+    static bool isOnGround(const GameObject *obj, const int mapMatrix[][Game::MAP_COLS], int rows, int tileWidth, int tileHeight);
 
-    // Kiểm tra va chạm của một đối tượng với map dựa trên giá trị của tile
-    // mapMatrix: mảng 2D chứa dữ liệu map (giá trị 0 đại diện cho tile có va chạm)
-    // rows, cols: số hàng và số cột của map
-    // tileWidth, tileHeight: kích thước mỗi tile tính theo pixel
-    static bool checkCollisionWithMap(const GameObject *obj, const int mapMatrix[][50], int rows, int cols, int tileWidth, int tileHeight);
-
-
-};
+    // Original movement function if it existed separately (might have been in GameObject)
+    // static void moveWithPhysics(GameObject* obj, float dx, float dy);
+}; 

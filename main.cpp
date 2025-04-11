@@ -3,7 +3,7 @@
 
 int main(int argc, char* argv[]) {
     Game* game = new Game();
-    game->init("Shadow of Words", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720);
+    game->init("Shadow of Words", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 720, 576);
 
     const int FPS = 60;
     const int frameDelay = 1000 / FPS;
