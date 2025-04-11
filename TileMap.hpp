@@ -8,11 +8,11 @@ public:
     ~TileMap();
 
     void drawMap();
+    void drawMap(int cameraX, int cameraY);
     int (*getMapMatrix())[Game::MAP_COLS] { return grid; }
 
 private:
-    SDL_Texture* dirtTexture;
-    SDL_Texture* grassBlockTexture;
+    SDL_Texture* tileSetTexture;
     SDL_Rect srcRect, destRect;
     int grid[Game::MAP_ROWS][Game::MAP_COLS];
     void loadMap(int arr[Game::MAP_ROWS][Game::MAP_COLS]);

@@ -25,3 +25,4 @@ void TextureManager::drawFrame(SDL_Texture* texture, int frame, int row, int fra
     SDL_Rect destRect = { x, y, frameWidth, frameHeight };
     SDL_RenderCopy(Game::renderer, texture, &srcRect, &destRect);
 }
+

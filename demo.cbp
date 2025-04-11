@@ -32,20 +32,22 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="Combat.cpp" />
+		<Unit filename="Combat.hpp" />
 		<Unit filename="GameObject.cpp" />
 		<Unit filename="GameObject.h" />
-		<Unit filename="Map.hpp" />
 		<Unit filename="Physics.cpp" />
 		<Unit filename="Physics.hpp" />
+		<Unit filename="TextureManager.cpp" />
+		<Unit filename="TextureManager.h" />
+		<Unit filename="TileMap.cpp" />
+		<Unit filename="TileMap.hpp" />
 		<Unit filename="assets/player_m_1.png" />
 		<Unit filename="assets/player_m_2.png" />
 		<Unit filename="entity.hpp" />
 		<Unit filename="game.cpp" />
 		<Unit filename="game.hpp" />
 		<Unit filename="main.cpp" />
-		<Unit filename="map.cpp" />
-		<Unit filename="textureManeger.cpp" />
-		<Unit filename="textureManeger.h" />
 		<Extensions />
 	</Project>
 </CodeBlocks_project_file>
