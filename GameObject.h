@@ -1,59 +1,56 @@
 #pragma once
-#include "Game.hpp"
 #include <SDL.h>
+#include "Game.hpp" // Re-include if needed for Game::renderer implicitly
 #include <vector>
+#include <random> // For std::mt19937 and std::uniform_int_distribution
+#include <ctime>   // For std::time
 
 // Forward declare Physics class
 class Physics;
-
-// Forward declarations
-namespace Combat {
-    void attack(class GameObject* player);
-    void parry();
-    void shoot();
-    void poison();
-    void reload();
-}
 
 // Enum for animation states
 enum AnimationState {
     IDLE,
     RUNNING,
-    JUMPING
+    JUMPING,
+    ATTACKING,
+    PARRYING // Add parrying state
     // FALLING could be another state
 };
 
 class GameObject {
 public:
-    // Removed Physics Constants
+    // Original constructor signature
+    GameObject(const char* idleTexturePath, const char* runTexturePath, const char* jumpTexturePath, const char* attackTexturePath, int x, int y, float scale = 1.0f);
+    virtual ~GameObject();
 
-    // Constructor now takes paths for idle, run, and jump textures
-    GameObject(const char* idleTexturePath, const char* runTexturePath, const char* jumpTexturePath,
-               int x, int y, float scale = 1.0f,
-               int idleAnimSpeed = 150, int runAnimSpeed = 100, int jumpAnimSpeed = 100);
-    ~GameObject();
-
-    void update(); // Handles animation state logic
-    void render(); // Keep original signature for backwards compatibility
-    void render(int x, int y); // Add overload that takes position
+    virtual void update();
+    // Original render signatures
+    virtual void render(); 
+    virtual void render(int x, int y);
     
-    void move(int dx); // Updated signature
-    void jump(); // Kept jump action method
-    void revertPosition();
+    void move(int direction); // Simplified move
+    void jump();
+    void attack();
+    void parry(); // Added Parry action
 
-    SDL_Rect getCollider() const { return destRect; }
-    bool checkCollision(const GameObject &other) const;
-
-    // Position Getters/Setters
+    // Accessors
     int getX() const { return xpos; }
     int getY() const { return ypos; }
-    void setPosition(int x, int y) { xpos = x; ypos = y; }
-    void setX(int x) { xpos = x; }
-    void setY(int y) { ypos = y; }
+    void setX(int x) { xpos = x; destRect.x = x; collider.x = x + colliderOffsetX; } // Update collider too
+    void setY(int y) { ypos = y; destRect.y = y; collider.y = y + colliderOffsetY; } // Update collider too
+    AnimationState getState() const { return currentState; }
+    void revertPosition();
+    SDL_Rect getCollider() const { return collider; }
+    SDL_Rect getAttackHitbox() const; // Calculate based on state and facing
 
-    // Texture Getters/Setters (Consider removing if textures are managed internally)
-    // SDL_Texture* getTexture() const { return currentTexture; } // currentTexture is now internal
-    // void setTexture(SDL_Texture* newTexture);
+    // Public members needed by Physics
+    int prevX, prevY;
+    float velocityX;
+    float velocityY;
+    bool onGround;
+    bool facingRight;
+    SDL_Rect destRect; // Destination rect for rendering
 
     // Public state variables (Consider making private)
     int currentFrame;
@@ -65,53 +62,52 @@ public:
     Uint32 attackStartTime;
     int attackDuration;
 
-    // Physics properties
-    bool onGround;
-    float velocityX;
-    float velocityY;
-
-    bool facingRight;
+    // Parry state variables
+    bool isParrying; // Flag for parry state
+    int parryFrameIndex; // Which frame of attack anim to show
+    Uint32 parryStartTime;
+    Uint32 parryDuration; // How long to hold the parry pose
     
-    // Add members needed by Physics class directly (make public or use friends)
-    // These were likely accessed directly or via getters by the old Physics class
-    // Need to ensure Physics.cpp can access necessary GameObject members.
-    // For simplicity, keep them public for now or re-add friend declaration.
-    int xpos, ypos; // Make position public temporarily if needed by Physics
-    SDL_Rect destRect; // Physics might need this
-    int prevX, prevY; // Physics might need this
+    // Random number generator for parry frame
+    std::mt19937 rng; 
+
+    // Other getters
+    bool getIsGrounded() const { return onGround; }
 
 private:
-    // int xpos, ypos; // Moved to public for Physics access
-    // int prevX, prevY; // Moved to public
-    SDL_Rect srcRect;
-    // SDL_Rect destRect; // Moved to public
+    int xpos, ypos;
     float scale;
+    SDL_Rect srcRect;
+    SDL_Rect collider; // Separate collider rect
+    int colliderOffsetX, colliderOffsetY; // Offset from xpos, ypos
 
-    // Animation Data
+    // Animation related
     SDL_Texture* idleTexture;
     SDL_Texture* runTexture;
     SDL_Texture* jumpTexture;
-    SDL_Texture* currentTexture; // Texture currently being used for rendering
-
-    int idleTotalFrames;
-    int runTotalFrames;
-    int jumpTotalFrames;
-    int currentTotalFrames; // Frame count for the current animation
-
-    int idleFrameWidth, idleFrameHeight;
-    int runFrameWidth, runFrameHeight;
-    int jumpFrameWidth, jumpFrameHeight;
-    int currentFrameWidth, currentFrameHeight; // Dimensions for the current animation
-
-    int idleAnimSpeed;
-    int runAnimSpeed;
-    int jumpAnimSpeed;
-    int currentAnimSpeed; // Speed for the current animation
+    SDL_Texture* attackTexture;
+    SDL_Texture* parryTexture; // Added Parry texture
+    SDL_Texture* currentTexture;
+    int idleTotalFrames, runTotalFrames, jumpTotalFrames, attackTotalFrames, parryTotalFrames, currentTotalFrames;
+    int idleFrameWidth, idleFrameHeight, runFrameWidth, runFrameHeight, jumpFrameWidth, jumpFrameHeight, attackFrameWidth, attackFrameHeight, parryFrameWidth, parryFrameHeight, currentFrameWidth, currentFrameHeight;
+    int idleAnimSpeed, runAnimSpeed, jumpAnimSpeed, attackAnimSpeed, parryAnimSpeed, currentAnimSpeed;
+    bool completeRunAnimation;
 
     // Private helper to switch animations
     void setAnimation(AnimationState newState);
 
+    // Original texture loading helper signature
+    bool loadAnimationData(const char* path, SDL_Texture*& texture, int& totalFrames, int& frameWidth, int& frameHeight);
+
     // Friend declarations
-    friend class Physics; // Re-add friend declaration
-    friend void Combat::attack(GameObject* player);
+    friend class Physics; 
 };
+
+// Forward declarations - Moved after GameObject class definition
+namespace Combat {
+    void attack(GameObject* player);
+    void parry();
+    void shoot();
+    void poison();
+    void reload();
+}
