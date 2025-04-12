@@ -1,116 +1,17 @@
 # depslib dependency file v1.0
-1740290460 source:c:\users\bui son\desktop\demo_sdl\demo\main.cpp
-	"game.hpp"
-
-1740576782 source:c:\users\bui son\desktop\demo_sdl\demo\game.cpp
-	"game.hpp"
-	"textureManager.h"
-	"GameObject.h"
-	"map.hpp"
-
-1740570958 c:\users\bui son\desktop\demo_sdl\demo\game.hpp
-	<SDL.h>
-	<SDL_image.h>
-	<iostream>
-
-1740576154 source:c:\users\bui son\desktop\demo_sdl\demo\texturemanager.cpp
-	"textureManager.h"
-
-1740572748 c:\users\bui son\desktop\demo_sdl\demo\texturemanager.h
-	"game.hpp"
-
-1740559198 c:\users\bui son\desktop\demo_sdl\demo\gameobject.h
-	"game.hpp"
-
-1740559863 source:c:\users\bui son\desktop\demo_sdl\demo\gameobject.cpp
-	"GameObject.h"
-	"textureManager.h"
-
-1740578196 source:c:\users\bui son\desktop\demo_sdl\demo\map.cpp
-	"map.hpp"
-	"textureManager.h"
-
-1740575563 c:\users\bui son\desktop\demo_sdl\demo\map.hpp
-	<SDL.h>
-	"textureManager.h"
-
-1744351315 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.cpp
-	"Game.hpp"
-	"GameObject.h"
+1744372422 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\texturemanager.cpp
 	"TextureManager.h"
-	"TileMap.hpp"
-	"Combat.hpp"
-	"Physics.hpp"
+	"Game.hpp"
 	<SDL_image.h>
 	<iostream>
-	<algorithm>
-
-1744351236 c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.hpp
-	<SDL.h>
-
-1742261971 c:\users\bui son\onedrive\desktop\demo_sdl\demo\texturemanager.h
-	"Game.hpp"
-
-1744350856 c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.h
-	"Game.hpp"
-	<SDL.h>
 	<vector>
 
-1741266053 c:\users\bui son\onedrive\desktop\demo_sdl\demo\map.hpp
-	<SDL.h>
-
-1744351108 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.cpp
-	"GameObject.h"
-	"TextureManager.h"
-	"Game.hpp"
-	"Physics.hpp"
-	<SDL.h>
-	<iostream>
-	<cstring>
-	<cmath>
-	<algorithm>
-
-1744350787 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\main.cpp
-	"Game.hpp"
-	<SDL.h>
-
-1741265289 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\map.cpp
-	"map.hpp"
-	"textureManeger.h"
-
-1742261977 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\texturemanager.cpp
-	"TextureManager.h"
-	<SDL_image.h>
-	<iostream>
-
-1744350361 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\physics.cpp
-	"Physics.hpp"
-	"GameObject.h"
-	"Game.hpp"
-	<SDL.h>
-	<cmath>
-	<algorithm>
-
-1744349803 c:\users\bui son\onedrive\desktop\demo_sdl\demo\physics.hpp
-	"GameObject.h"
-	"Game.hpp"
-	<algorithm>
-
-1741268445 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\texturemaneger.cpp
-	"textureManeger.h"
-
-1741085334 c:\users\bui son\onedrive\desktop\demo_sdl\demo\texturemaneger.h
-	"game.hpp"
-
-1744350887 c:\users\bui son\onedrive\desktop\demo_sdl\demo\tilemap.hpp
+1744372112 c:\users\bui son\onedrive\desktop\demo_sdl\demo\texturemanager.h
 	<SDL.h>
 	"Game.hpp"
 
-1744351091 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\tilemap.cpp
-	"TileMap.hpp"
-	"TextureManager.h"
+1744372650 c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.hpp
 	<SDL.h>
-	<iostream>
 
 1744262773 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\combat.cpp
 	"Combat.hpp"
@@ -120,4 +21,86 @@
 	<iostream>
 
 1741667082 c:\users\bui son\onedrive\desktop\demo_sdl\demo\combat.hpp
+
+1744480205 c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.h
+	<SDL.h>
+	"Game.hpp"
+	<vector>
+	<random>
+	<ctime>
+
+1744481415 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\enemy.cpp
+	"Enemy.h"
+	"TextureManager.h"
+	"Game.hpp"
+	"Physics.hpp"
+	<SDL.h>
+	<iostream>
+	<cstring>
+	<cmath>
+
+1744462563 c:\users\bui son\onedrive\desktop\demo_sdl\demo\enemy.h
+	<SDL.h>
+	"Game.hpp"
+	"TextureManager.h"
+	"Physics.hpp"
+	<string>
+	<vector>
+	<iostream>
+
+1744464885 c:\users\bui son\onedrive\desktop\demo_sdl\demo\physics.hpp
+	"GameObject.h"
+	"Enemy.h"
+	"Game.hpp"
+	<SDL.h>
+
+1744464810 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\physics.cpp
+	"Physics.hpp"
+	"GameObject.h"
+	"Enemy.h"
+	"Game.hpp"
+	<SDL.h>
+	<cmath>
+	<algorithm>
+
+1744461270 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\main.cpp
+	<SDL.h>
+	"Game.hpp"
+
+1744375081 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\tilemap.cpp
+	"TileMap.hpp"
+	"TextureManager.h"
+	"Game.hpp"
+	<SDL.h>
+	<iostream>
+	<fstream>
+
+1744375090 c:\users\bui son\onedrive\desktop\demo_sdl\demo\tilemap.hpp
+	<SDL.h>
+	"Game.hpp"
+
+1744481522 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.cpp
+	"GameObject.h"
+	"TextureManager.h"
+	"Game.hpp"
+	"Physics.hpp"
+	"Combat.hpp"
+	<SDL.h>
+	<iostream>
+	<cstring>
+	<cmath>
+	<algorithm>
+	<ctime>
+
+1744479678 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.cpp
+	"Game.hpp"
+	"GameObject.h"
+	"TextureManager.h"
+	"TileMap.hpp"
+	"Combat.hpp"
+	"Physics.hpp"
+	"Enemy.h"
+	<SDL_image.h>
+	<iostream>
+	<algorithm>
 
