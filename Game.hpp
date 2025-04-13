@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL.h>
 #include <SDL_mixer.h>
+#include <SDL_ttf.h>
 #include <vector>
 #include "AudioManager.h"
 
@@ -38,18 +39,35 @@ public:
     // Renderer dung chung
     static SDL_Renderer* renderer;
 
-    void spawnRandomEnemy();  // Add this line
+    void spawnRandomEnemy();
 
 private:
     SDL_Window* window;
     bool isRunning;
     GameObject* player;
-    std::vector<Enemy*> enemies;  // Replace single enemy with vector
-    bool firstWaveDefeated;       // Track if first enemy is defeated
+    std::vector<Enemy*> enemies;
+    bool firstWaveDefeated;
+    int defeatedEnemyCount;  // Add counter for defeated enemies
     TileMap* tileMap;
-    SDL_Texture* backgroundTexture; // Furthest background (BG1)
-    SDL_Texture* foregroundTexture; // Closer background (BG2)
-    SDL_Texture* closestTexture;    // Closest background (BG3)
-    int cameraX, cameraY;           // Camera position variables
-    bool lockCamera;                // Flag to lock camera and constrain player
+    SDL_Texture* backgroundTexture;
+    SDL_Texture* foregroundTexture;
+    SDL_Texture* closestTexture;
+    int cameraX, cameraY;
+    bool lockCamera;
+    bool secondMusicStarted;  // Track if second music has started
+    TTF_Font* font;  // Add font member
+    
+    // Add parry text properties
+    bool showParryText;
+    Uint32 parryTextStartTime;
+    static const Uint32 PARRY_TEXT_DURATION = 1000; // 1 second in milliseconds
+    SDL_Color parryTextColor;
+    int parryTextSize;
+    int successfulParryCount;  // Add counter for successful parries
+    
+    // Timer properties
+    bool timerStarted;
+    Uint32 timerStartTime;
+    static const Uint32 TIMER_DURATION = 142000; // 2:22 in milliseconds (142 seconds)
+    bool hasStartedTimer;  // Track if timer has been started after 10 defeats
 };

@@ -236,6 +236,7 @@ void GameObject::renderSprite(int x, int y) {
 void GameObject::renderHitboxes(int x, int y) {
     if (!Game::renderer) return;
 
+    /*
     // Draw character collider box (white outline)
     SDL_Rect tempCollider = {
         x + (destRect.w - collider.w) / 2,
@@ -272,6 +273,7 @@ void GameObject::renderHitboxes(int x, int y) {
     }
 
     SDL_SetRenderDrawColor(Game::renderer, 0, 0, 0, 255);
+    */
 }
 
 void GameObject::render() {

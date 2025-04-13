@@ -368,6 +368,7 @@ void Enemy::render() {
         SDL_SetTextureAlphaMod(currentTexture, 255);
     }
 
+    /*
     // Draw enemy collider box (blue)
     SDL_Rect tempCollider = {
         xpos + (destRect.w - collider.w) / 2,
@@ -401,6 +402,7 @@ void Enemy::render() {
     }
 
     SDL_SetRenderDrawColor(Game::renderer, 0, 0, 0, 255);
+    */
 }
 
 void Enemy::render(int x, int y) {
@@ -424,6 +426,7 @@ void Enemy::render(int x, int y) {
         SDL_SetTextureAlphaMod(currentTexture, 255);
     }
 
+    /*
     // Draw enemy collider box (blue) with camera offset
     SDL_Rect tempCollider = {
         x + (destRect.w - collider.w) / 2,
@@ -461,4 +464,5 @@ void Enemy::render(int x, int y) {
     }
 
     SDL_SetRenderDrawColor(Game::renderer, 0, 0, 0, 255);
+    */
 }

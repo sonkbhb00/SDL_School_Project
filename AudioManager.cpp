@@ -3,7 +3,8 @@
 
 AudioManager* AudioManager::instance = nullptr;
 
-AudioManager::AudioManager() : backgroundMusic(nullptr) {
+AudioManager::AudioManager() : backgroundMusic(nullptr), nextMusicPath(nullptr),
+    musicStartTime(0), waitingForNextTrack(false) {
     // Initialize random number generator
     std::random_device rd;
     rng.seed(rd());
@@ -53,6 +54,7 @@ void AudioManager::playMusic(const char* path, int loops) {
         return;
     }
     
+    musicStartTime = SDL_GetTicks();
     if (Mix_PlayMusic(backgroundMusic, loops) < 0) {
         std::cout << "Failed to play music! SDL_mixer Error: " << Mix_GetError() << std::endl;
     }
@@ -111,6 +113,22 @@ void AudioManager::playRandomParrySound() {
     std::uniform_int_distribution<int> dist(0, parrySoundPaths.size() - 1);
     int randomIndex = dist(rng);
     playSoundEffect(parrySoundPaths[randomIndex].c_str());
+}
+
+void AudioManager::setNextTrack(const char* path) {
+    nextMusicPath = path;
+    waitingForNextTrack = true;
+}
+
+void AudioManager::update() {
+    if (waitingForNextTrack && backgroundMusic) {
+        Uint32 currentTime = SDL_GetTicks();
+        if (currentTime - musicStartTime >= FIRST_TRACK_DURATION) {
+            playMusic(nextMusicPath);
+            waitingForNextTrack = false;
+            nextMusicPath = nullptr;
+        }
+    }
 }
 
 void AudioManager::cleanup() {

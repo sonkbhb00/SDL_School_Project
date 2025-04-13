@@ -20,6 +20,8 @@ public:
     void playMissSound();
     void playRandomParrySound();
     void cleanup();
+    void update(); // Add update method to check music state
+    void setNextTrack(const char* path); // Add method to set next track
 
 private:
     AudioManager();
@@ -33,4 +35,10 @@ private:
     std::vector<std::string> parrySoundPaths;
     static AudioManager* instance;
     std::mt19937 rng;
+    
+    // Next track properties
+    const char* nextMusicPath;
+    Uint32 musicStartTime;
+    bool waitingForNextTrack;
+    static const Uint32 FIRST_TRACK_DURATION = 28000; // 28 seconds in milliseconds
 };

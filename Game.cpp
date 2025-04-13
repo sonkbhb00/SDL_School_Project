@@ -18,12 +18,23 @@ SDL_Renderer* Game::renderer = nullptr;
 
 Game::Game() : window(nullptr), isRunning(false), player(nullptr),
                firstWaveDefeated(false),
+               defeatedEnemyCount(0),
+               secondMusicStarted(false),
                tileMap(nullptr),
                backgroundTexture(nullptr),
                foregroundTexture(nullptr),
                closestTexture(nullptr),
                cameraX(0), cameraY(0),
-               lockCamera(true)
+               lockCamera(true),
+               font(nullptr),
+               showParryText(false),
+               parryTextStartTime(0),
+               parryTextSize(48),
+               parryTextColor{255, 255, 255, 255},
+               successfulParryCount(0),
+               timerStarted(false),  // Don't start timer immediately
+               timerStartTime(0),
+               hasStartedTimer(false)  // Initialize new flag
 { }
 
 Game::~Game() {
@@ -31,11 +42,26 @@ Game::~Game() {
 
 void Game::init(const char* title, int xPos, int yPos, int width, int height) {
     if (SDL_Init(SDL_INIT_EVERYTHING) == 0) {
+        // Initialize SDL_ttf
+        if (TTF_Init() < 0) {
+            std::cout << "SDL_ttf could not initialize! SDL_ttf Error: " << TTF_GetError() << std::endl;
+            isRunning = false;
+            return;
+        }
+
         window = SDL_CreateWindow(title, xPos, yPos, width, height, SDL_WINDOW_SHOWN);
         renderer = SDL_CreateRenderer(window, -1, 0); // Initialize static renderer
         if (!renderer) { isRunning = false; return; }
         isRunning = true;
         IMG_Init(IMG_INIT_PNG);
+
+        // Load font
+        font = TTF_OpenFont("font/Jacquard_12/Jacquard12-Regular.ttf", 36);
+        if (!font) {
+            std::cout << "Failed to load font! SDL_ttf Error: " << TTF_GetError() << std::endl;
+            isRunning = false;
+            return;
+        }
 
         // Initialize audio manager
         if (!AudioManager::getInstance().init()) {
@@ -44,9 +70,9 @@ void Game::init(const char* title, int xPos, int yPos, int width, int height) {
             return;
         }
 
-        // Play background music
+        // Play initial background music and set up next track
         AudioManager::getInstance().playMusic("audio/medieval-star-188280.mp3");
-        AudioManager::getInstance().setMusicVolume(64); // Set to 50% volume
+        AudioManager::getInstance().setMusicVolume(64);
 
         // Use original TextureManager calls (assuming it used Game::renderer)
         backgroundTexture = TextureManager::loadTexture("assets/BG1.png");
@@ -111,6 +137,9 @@ void Game::handleEvents() {
 }
 
 void Game::update() {
+    // Add AudioManager update at the start of the update loop
+    AudioManager::getInstance().update();
+
     // Update player
     if (player) {
         player->prevX = player->getX();
@@ -149,15 +178,19 @@ void Game::update() {
         }
     }
 
-    // Spawn new enemies if all are defeated
+    // Handle newly defeated enemies and spawn new ones if all are defeated
     if (allEnemiesDefeated) {
         // Spawn 2 enemies at different positions
         spawnRandomEnemy();
-        spawnRandomEnemy(); // Calling twice ensures different random positions
+        spawnRandomEnemy();
 
-        // Change music for new wave
-        AudioManager::getInstance().playMusic("audio/medieval-adventure-270566.mp3");
-        AudioManager::getInstance().setMusicVolume(64);
+        // Change music after defeating 10 enemies if not already changed
+        if (defeatedEnemyCount >= 10 && !secondMusicStarted) {
+            AudioManager::getInstance().playMusic("audio/medieval-adventure-270566.mp3");
+            AudioManager::getInstance().setNextTrack("audio/medieval-opener-270568.mp3");
+            AudioManager::getInstance().setMusicVolume(64);
+            secondMusicStarted = true;
+        }
     }
 
     // Update all enemies
@@ -198,6 +231,17 @@ void Game::update() {
                         float parryKnockback = 10.0f;
                         player->velocityX = player->facingRight ? -parryKnockback : parryKnockback;
                         AudioManager::getInstance().playRandomParrySound();
+                        
+                        // Show parry text with random color when successful
+                        showParryText = true;
+                        parryTextStartTime = SDL_GetTicks();
+                        successfulParryCount++;  // Increment successful parries
+                        
+                        // Generate random bright color
+                        parryTextColor.r = rand() % 128 + 128; // 128-255 for brighter colors
+                        parryTextColor.g = rand() % 128 + 128;
+                        parryTextColor.b = rand() % 128 + 128;
+                        parryTextColor.a = 255;
                     } else {
                         AudioManager::getInstance().playRandomHitSound();
                         player->takeHit();
@@ -214,6 +258,8 @@ void Game::update() {
                     !enemy->isTakingHit() && !enemy->isPermanentlyDisabled) {
                     AudioManager::getInstance().playRandomHitSound();
                     enemy->takeHit();
+                    // Increment defeat count when enemy is hit and will be disabled
+                    defeatedEnemyCount++;
                 }
             }
         }
@@ -223,7 +269,7 @@ void Game::update() {
     if (player && player->isAttacking && player->getCurrentFrame() == 0) {
         bool hitSomething = false;
         SDL_Rect playerAttackBox = player->getAttackHitbox();
-        
+
         for (Enemy* enemy : enemies) {
             if (enemy && !enemy->isPermanentlyDisabled) {
                 SDL_Rect enemyCollider = enemy->getCollider();
@@ -233,10 +279,27 @@ void Game::update() {
                 }
             }
         }
-        
+
         if (!hitSomething) {
             AudioManager::getInstance().playMissSound();
         }
+    }
+
+    // Update parry text timer
+    if (showParryText && SDL_GetTicks() - parryTextStartTime >= PARRY_TEXT_DURATION) {
+        showParryText = false;
+    }
+
+    // Start timer when reaching 10 defeats if not already started
+    if (!hasStartedTimer && defeatedEnemyCount >= 10) {
+        hasStartedTimer = true;
+        timerStarted = true;
+        timerStartTime = SDL_GetTicks();
+    }
+
+    // End game when timer runs out (only if timer has started)
+    if (timerStarted && SDL_GetTicks() - timerStartTime >= TIMER_DURATION) {
+        isRunning = false;
     }
 }
 
@@ -309,6 +372,103 @@ void Game::render() {
         }
     }
 
+    // Render UI elements if font is available
+    if (font) {
+        SDL_Color textColor = {255, 255, 255, 255}; // White text
+        
+        // Render enemy defeat counter
+        std::string countText = "Enemies Defeated: " + std::to_string(defeatedEnemyCount);
+        SDL_Surface* textSurface = TTF_RenderText_Solid(font, countText.c_str(), textColor);
+        if (textSurface) {
+            SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+            
+            SDL_Rect textRect;
+            textRect.w = textSurface->w;
+            textRect.h = textSurface->h;
+            textRect.x = (SCREEN_WIDTH - textRect.w) / 2;
+            textRect.y = 20;
+            
+            SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+            
+            // Render parry counter
+            std::string parryText = "PARRIED: " + std::to_string(successfulParryCount);
+            SDL_Surface* parrySurface = TTF_RenderText_Solid(font, parryText.c_str(), textColor);
+            if (parrySurface) {
+                SDL_Texture* parryTexture = SDL_CreateTextureFromSurface(renderer, parrySurface);
+                
+                SDL_Rect parryCountRect;
+                parryCountRect.w = parrySurface->w;
+                parryCountRect.h = parrySurface->h;
+                parryCountRect.x = (SCREEN_WIDTH - parryCountRect.w) / 2;
+                parryCountRect.y = textRect.y + textRect.h + 10;
+                
+                SDL_RenderCopy(renderer, parryTexture, NULL, &parryCountRect);
+                
+                // Only render countdown timer if more than 10 enemies defeated
+                if (timerStarted && defeatedEnemyCount >= 10) {
+                    Uint32 elapsedTime = SDL_GetTicks() - timerStartTime;
+                    Uint32 remainingTime = (elapsedTime >= TIMER_DURATION) ? 0 : TIMER_DURATION - elapsedTime;
+                    
+                    int minutes = (remainingTime / 1000) / 60;
+                    int seconds = (remainingTime / 1000) % 60;
+                    
+                    std::string timerText = std::to_string(minutes) + " : " + 
+                                          (seconds < 10 ? "0" : "") + std::to_string(seconds);
+                    
+                    SDL_Surface* timerSurface = TTF_RenderText_Solid(font, timerText.c_str(), textColor);
+                    if (timerSurface) {
+                        SDL_Texture* timerTexture = SDL_CreateTextureFromSurface(renderer, timerSurface);
+                        
+                        SDL_Rect timerRect;
+                        timerRect.w = timerSurface->w;
+                        timerRect.h = timerSurface->h;
+                        timerRect.x = (SCREEN_WIDTH - timerRect.w) / 2;
+                        timerRect.y = parryCountRect.y + parryCountRect.h + 10;
+                        
+                        SDL_RenderCopy(renderer, timerTexture, NULL, &timerRect);
+                        
+                        SDL_FreeSurface(timerSurface);
+                        SDL_DestroyTexture(timerTexture);
+                    }
+                }
+                
+                SDL_FreeSurface(parrySurface);
+                SDL_DestroyTexture(parryTexture);
+            }
+            
+            SDL_FreeSurface(textSurface);
+            SDL_DestroyTexture(textTexture);
+        }
+
+        // Render parry effect text if active
+        if (showParryText) {
+            // Calculate size based on successful parries (start at 48, increase by 12 each time)
+            int currentTextSize = parryTextSize + (successfulParryCount - 1) * 12;
+            currentTextSize = std::min(currentTextSize, 120); // Cap maximum size at 120
+            
+            // Create a larger font for the parry text
+            TTF_Font* largeFont = TTF_OpenFont("font/Jacquard_12/Jacquard12-Regular.ttf", currentTextSize);
+            if (largeFont) {
+                SDL_Surface* parrySurface = TTF_RenderText_Solid(largeFont, "PARRY!?", parryTextColor);
+                if (parrySurface) {
+                    SDL_Texture* parryTexture = SDL_CreateTextureFromSurface(renderer, parrySurface);
+                    
+                    SDL_Rect parryRect;
+                    parryRect.w = parrySurface->w;
+                    parryRect.h = parrySurface->h;
+                    parryRect.x = (SCREEN_WIDTH - parryRect.w) / 2;
+                    parryRect.y = (SCREEN_HEIGHT / 2) - 50 - parryRect.h/2; // Center vertically with 50px offset
+                    
+                    SDL_RenderCopy(renderer, parryTexture, NULL, &parryRect);
+                    
+                    SDL_FreeSurface(parrySurface);
+                    SDL_DestroyTexture(parryTexture);
+                }
+                TTF_CloseFont(largeFont);
+            }
+        }
+    }
+
     // 6. Render hitboxes on top of everything
     if (player && player->getX() >= 0 && player->getY() >= 0) {
         int renderX = player->getX() - cameraX;
@@ -321,6 +481,13 @@ void Game::render() {
 }
 
 void Game::clean() {
+    // Cleanup font before other resources
+    if (font) {
+        TTF_CloseFont(font);
+        font = nullptr;
+    }
+    TTF_Quit();
+
     // Cleanup audio before other resources
     AudioManager::getInstance().cleanup();
 
@@ -349,12 +516,12 @@ void Game::spawnRandomEnemy() {
     static std::random_device rd;
     static std::mt19937 gen(rd());
     std::uniform_int_distribution<> dist(100, SCREEN_WIDTH - 100); // Use screen width for spawning
-    
+
     // Random x position anywhere on screen
     int spawnX = dist(gen);
-    
+
     Enemy* newEnemy = new Enemy("assets/Idle.png", "assets/Run.png", "assets/Attack.png",
-                               "assets/Take Hit.png", "assets/Death.png", spawnX, 50, 1.0f);
+                               "assets/Take Hit.png", "assets/Death.png", spawnX, 0, 1.0f);
     if (newEnemy) {
         enemies.push_back(newEnemy);
     }
