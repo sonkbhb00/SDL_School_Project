@@ -14,14 +14,17 @@ enum AnimationState {
     RUNNING,
     JUMPING,
     ATTACKING,
-    PARRYING // Add parrying state
-    // FALLING could be another state
+    PARRYING,
+    TAKE_HIT,
+    DEATH
 };
 
 class GameObject {
 public:
     // Original constructor signature
-    GameObject(const char* idleTexturePath, const char* runTexturePath, const char* jumpTexturePath, const char* attackTexturePath, int x, int y, float scale = 1.0f);
+    GameObject(const char* idleTexturePath, const char* runTexturePath, const char* jumpTexturePath, 
+              const char* attackTexturePath, const char* takeHitTexturePath, const char* deathTexturePath,
+              int x, int y, float scale = 1.0f);
     virtual ~GameObject();
 
     virtual void update();
@@ -35,6 +38,7 @@ public:
     void jump();
     void attack();
     void parry(); // Added Parry action
+    void takeHit(); // Added Take Hit action
 
     // Accessors
     int getX() const { return xpos; }
@@ -81,8 +85,20 @@ public:
     // Random number generator for parry frame
     std::mt19937 rng; 
 
+    // Hit and death state variables
+    bool inHitState;
+    bool permanentlyDisabled;
+    Uint32 takeHitStartTime;
+    Uint32 takeHitDuration;
+
     // Other getters
     bool getIsGrounded() const { return onGround; }
+    bool isInHitState() const { return inHitState; }
+    bool isPermanentlyDisabled() const { return permanentlyDisabled; }
+
+    // Animation frame counters
+    int getIdleFrameCount() const { return idleFrameCount; }
+    int getRunFrameCount() const { return runFrameCount; }
 
 private:
     int xpos, ypos;
@@ -97,11 +113,19 @@ private:
     SDL_Texture* jumpTexture;
     SDL_Texture* attackTexture;
     SDL_Texture* parryTexture; // Added Parry texture
+    SDL_Texture* takeHitTexture; // Added Take Hit texture
+    SDL_Texture* deathTexture; // Added Death texture
     SDL_Texture* currentTexture;
-    int idleTotalFrames, runTotalFrames, jumpTotalFrames, attackTotalFrames, parryTotalFrames, currentTotalFrames;
-    int idleFrameWidth, idleFrameHeight, runFrameWidth, runFrameHeight, jumpFrameWidth, jumpFrameHeight, attackFrameWidth, attackFrameHeight, parryFrameWidth, parryFrameHeight, currentFrameWidth, currentFrameHeight;
-    int idleAnimSpeed, runAnimSpeed, jumpAnimSpeed, attackAnimSpeed, parryAnimSpeed, currentAnimSpeed;
+    int idleTotalFrames, runTotalFrames, jumpTotalFrames, attackTotalFrames, parryTotalFrames, takeHitTotalFrames, deathTotalFrames, currentTotalFrames;
+    int idleFrameWidth, idleFrameHeight, runFrameWidth, runFrameHeight, jumpFrameWidth, jumpFrameHeight, attackFrameWidth, attackFrameHeight, parryFrameWidth, parryFrameHeight, takeHitFrameWidth, takeHitFrameHeight, deathFrameWidth, deathFrameHeight, currentFrameWidth, currentFrameHeight;
+    int idleAnimSpeed, runAnimSpeed, jumpAnimSpeed, attackAnimSpeed, parryAnimSpeed, takeHitAnimSpeed, deathAnimSpeed, currentAnimSpeed;
     bool completeRunAnimation;
+
+    // Animation frame counters
+    int idleFrameCount;
+    int runFrameCount;
+    int maxIdleFrames;
+    int maxRunFrames;
 
     // Private helper to switch animations
     void setAnimation(AnimationState newState);

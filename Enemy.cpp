@@ -1,33 +1,35 @@
 #include "Enemy.h"
+#include "GameObject.h"
 #include "TextureManager.h"
 #include "Game.hpp"
-#include "Physics.hpp" // Make sure Physics is included
+#include "Physics.hpp"
 #include <SDL.h>
 #include <iostream>
-#include <cstring> // Required for strcmp
-#include <cmath>   // For std::fabs
+#include <cstring>
+#include <cmath>
 
-// Original Helper function
 bool Enemy::loadEnemyAnimationData(const char* path, SDL_Texture*& texture, int& totalFrames, int& frameWidth, int& frameHeight) {
-    texture = TextureManager::loadTexture(path); // Uses Game::renderer via TM
+    texture = TextureManager::loadTexture(path);
     if (!texture) return false;
+    
     int w, h;
     SDL_QueryTexture(texture, NULL, NULL, &w, &h);
     frameHeight = h;
-    // Frame counts logic...
+
     if (strcmp(path, "assets/Idle.png") == 0) totalFrames = 11;
     else if (strcmp(path, "assets/Run.png") == 0) totalFrames = 8;
+    else if (strcmp(path, "assets/Attack.png") == 0) totalFrames = 6;
     else if (strcmp(path, "assets/Take Hit.png") == 0) totalFrames = 4;
     else if (strcmp(path, "assets/Death.png") == 0) totalFrames = 9;
     else totalFrames = 1;
+
     if (totalFrames > 0) frameWidth = w / totalFrames;
     else { frameWidth = w; totalFrames = 1; }
     return true;
 }
 
-// Updated Constructor
-Enemy::Enemy(const char* idleTexturePath, const char* runTexturePath, const char* takeHitTexturePath, const char* deathTexturePath,
-             int x, int y, float scale)
+Enemy::Enemy(const char* idleTexturePath, const char* runTexturePath, const char* attackTexturePath,
+             const char* takeHitTexturePath, const char* deathTexturePath, int x, int y, float scale)
     : prevX(x), prevY(y),
       velocityX(0.0f), velocityY(0.0f), 
       onGround(false),
@@ -37,27 +39,52 @@ Enemy::Enemy(const char* idleTexturePath, const char* runTexturePath, const char
       currentFrame(0),
       xpos(x), ypos(y), 
       scale(scale),
-      colliderOffsetX(0), colliderOffsetY(0), // Remove offsets for centered hitbox
+      colliderOffsetX(0), colliderOffsetY(0),
       facingRight(true),
-      idleTexture(nullptr), runTexture(nullptr), takeHitTexture(nullptr), deathTexture(nullptr), currentTexture(nullptr),
-      idleTotalFrames(0), runTotalFrames(0), takeHitTotalFrames(0), deathTotalFrames(0), currentTotalFrames(0),
-      idleFrameWidth(0), idleFrameHeight(0), runFrameWidth(0), runFrameHeight(0), 
+      idleTexture(nullptr), runTexture(nullptr), attackTexture(nullptr), 
+      takeHitTexture(nullptr), deathTexture(nullptr), currentTexture(nullptr),
+      isAttacking(false),
+      attackStartTime(0),
+      attackDuration(400),
+      attackRange(100.0f),
+      lastAttackTime(0),
+      attackCooldown(2000),
+      idleTotalFrames(0), runTotalFrames(0), attackTotalFrames(0), 
+      takeHitTotalFrames(0), deathTotalFrames(0), currentTotalFrames(0),
+      idleFrameWidth(0), idleFrameHeight(0), runFrameWidth(0), runFrameHeight(0),
+      attackFrameWidth(0), attackFrameHeight(0),
       takeHitFrameWidth(0), takeHitFrameHeight(0), deathFrameWidth(0), deathFrameHeight(0),
       currentFrameWidth(0), currentFrameHeight(0),
-      idleAnimSpeed(200), runAnimSpeed(150), takeHitAnimSpeed(100), deathAnimSpeed(150), currentAnimSpeed(200),
+      idleAnimSpeed(100),
+      runAnimSpeed(80),
+      attackAnimSpeed(60),
+      takeHitAnimSpeed(100),
+      deathAnimSpeed(150),
+      currentAnimSpeed(100),
       lastFrameTime(SDL_GetTicks()),
       takeHitStartTime(0),
-      takeHitDuration(300)
+      takeHitDuration(300),
+      isFlashing(false),
+      flashStartTime(0),
+      flashDuration(150),
+      flashAlpha(255)
 {
-    // Load textures using original helper
-    bool idleLoaded = loadEnemyAnimationData(idleTexturePath, idleTexture, idleTotalFrames, idleFrameWidth, idleFrameHeight);
-    bool runLoaded = loadEnemyAnimationData(runTexturePath, runTexture, runTotalFrames, runFrameWidth, runFrameHeight);
-    bool takeHitLoaded = loadEnemyAnimationData(takeHitTexturePath, takeHitTexture, takeHitTotalFrames, takeHitFrameWidth, takeHitFrameHeight);
-    bool deathLoaded = loadEnemyAnimationData(deathTexturePath, deathTexture, deathTotalFrames, deathFrameWidth, deathFrameHeight);
-
-    if (!idleLoaded && !runLoaded) { 
-        std::cerr << "Error: Failed to load critical Idle/Run animations for Enemy!" << std::endl;
+    // Load all textures with error checking
+    if (!loadEnemyAnimationData(idleTexturePath, idleTexture, idleTotalFrames, idleFrameWidth, idleFrameHeight) ||
+        !loadEnemyAnimationData(runTexturePath, runTexture, runTotalFrames, runFrameWidth, runFrameHeight)) {
+        std::cerr << "Error: Failed to load critical animations for Enemy!" << std::endl;
         return;
+    }
+
+    // Load optional animations
+    if (!loadEnemyAnimationData(attackTexturePath, attackTexture, attackTotalFrames, attackFrameWidth, attackFrameHeight)) {
+        std::cerr << "Warning: Failed to load attack animation" << std::endl;
+    }
+    if (!loadEnemyAnimationData(takeHitTexturePath, takeHitTexture, takeHitTotalFrames, takeHitFrameWidth, takeHitFrameHeight)) {
+        std::cerr << "Warning: Failed to load take hit animation" << std::endl;
+    }
+    if (!loadEnemyAnimationData(deathTexturePath, deathTexture, deathTotalFrames, deathFrameWidth, deathFrameHeight)) {
+        std::cerr << "Warning: Failed to load death animation" << std::endl;
     }
 
     // Initialize with idle animation
@@ -67,13 +94,13 @@ Enemy::Enemy(const char* idleTexturePath, const char* runTexturePath, const char
     currentFrameHeight = idleFrameHeight;
     currentAnimSpeed = idleAnimSpeed;
 
-    // Set up initial rectangles with centered collision box
+    // Set up rectangles
     destRect = { x, y, static_cast<int>(idleFrameWidth * scale), static_cast<int>(idleFrameHeight * scale) };
     srcRect = { 0, 0, idleFrameWidth, idleFrameHeight };
     
-    // Make collider match destRect exactly and center it
-    collider.w = destRect.w;
-    collider.h = destRect.h;
+    // Set up collider as half the size of destRect
+    collider.w = destRect.w / 2;
+    collider.h = destRect.h / 2;
     collider.x = x + (destRect.w - collider.w) / 2;
     collider.y = y + (destRect.h - collider.h) / 2;
 }
@@ -82,9 +109,48 @@ Enemy::~Enemy() {
     // Textures are handled by TextureManager
 }
 
-// Updated update method
-void Enemy::update(const int mapData[][Game::MAP_COLS]) {
+void Enemy::tryAttack(const GameObject* player) {
+    if (!player || isPermanentlyDisabled || isInHitState || isAttacking) return;
+
     Uint32 currentTime = SDL_GetTicks();
+    if (currentTime - lastAttackTime < attackCooldown) return;
+
+    // Calculate distance to player
+    float dx = player->getX() - xpos;
+    float dy = player->getY() - ypos;
+    float distance = std::sqrt(dx * dx + dy * dy);
+
+    // Update facing direction based on player position
+    facingRight = dx > 0;
+
+    // If within attack range and not currently attacking
+    if (distance <= attackRange) {
+        isAttacking = true;
+        attackStartTime = currentTime;
+        lastAttackTime = currentTime;
+        setAnimation(ENEMY_ATTACKING);
+        velocityX = 0.0f; // Stop moving while attacking
+    }
+}
+
+void Enemy::update(const GameObject* player) {
+    Uint32 currentTime = SDL_GetTicks();
+
+    // Update flash effect
+    if (isFlashing) {
+        Uint32 flashElapsed = currentTime - flashStartTime;
+        if (flashElapsed >= flashDuration) {
+            isFlashing = false;
+        } else {
+            // Fade out the flash
+            flashAlpha = static_cast<Uint8>(255 * (1.0f - static_cast<float>(flashElapsed) / flashDuration));
+        }
+    }
+
+    // Try to attack if we have a valid player reference
+    if (player && !isInHitState && !isPermanentlyDisabled) {
+        tryAttack(player);
+    }
 
     // Handle hit state and death transition
     if (isInHitState) {
@@ -96,66 +162,89 @@ void Enemy::update(const int mapData[][Game::MAP_COLS]) {
         }
     }
 
+    // Handle attack state
+    if (isAttacking) {
+        if (currentTime - attackStartTime >= attackDuration) {
+            isAttacking = false;
+            setAnimation(ENEMY_IDLE);
+        }
+    }
+
     // Update animation state based on movement and conditions
-    if (!isInHitState && currentState != ENEMY_DEATH) {
+    if (!isInHitState && !isAttacking && currentState != ENEMY_DEATH) {
         if (isPermanentlyDisabled) {
             if (currentState != ENEMY_IDLE) {
                 setAnimation(ENEMY_IDLE);
             }
-        } else if (!onGround) {
-            if (currentState != ENEMY_IDLE) {
-                setAnimation(ENEMY_IDLE);
-            }
-        } else if (std::fabs(velocityX) > 0.1f) {
-            if (currentState != ENEMY_RUNNING) {
-                setAnimation(ENEMY_RUNNING);
-            }
-            // Update facing direction based on velocity
-            facingRight = velocityX > 0;
         } else {
-            if (currentState != ENEMY_IDLE) {
+            bool isMoving = std::fabs(velocityX) > 0.1f;
+            
+            if (isMoving && currentState != ENEMY_RUNNING) {
+                setAnimation(ENEMY_RUNNING);
+            } else if (!isMoving && !isAttacking && currentState != ENEMY_IDLE) {
                 setAnimation(ENEMY_IDLE);
+            }
+
+            // Update facing direction based on velocity
+            if (isMoving) {
+                facingRight = velocityX > 0;
             }
         }
     }
 
-    // Update animation frames with proper timing
+    // Update animation frames
     if (currentTexture && currentTotalFrames > 1) {
         Uint32 elapsedTime = currentTime - lastFrameTime;
         if (elapsedTime >= static_cast<Uint32>(currentAnimSpeed)) {
-            // For death and take hit animations, don't loop
+            lastFrameTime = currentTime;
+            
             if (currentState == ENEMY_DEATH || currentState == ENEMY_TAKE_HIT) {
                 if (currentFrame < currentTotalFrames - 1) {
                     currentFrame++;
                 }
             } else {
-                // For other animations, loop normally
                 currentFrame = (currentFrame + 1) % currentTotalFrames;
             }
-            lastFrameTime = currentTime;
         }
     }
 
-    // Update source rectangle for rendering
+    // Update rectangles
     srcRect.x = currentFrame * currentFrameWidth;
     srcRect.y = 0;
     srcRect.w = currentFrameWidth;
     srcRect.h = currentFrameHeight;
 
-    // Update destination rectangle size
     destRect.w = static_cast<int>(currentFrameWidth * scale);
     destRect.h = static_cast<int>(currentFrameHeight * scale);
     destRect.x = xpos;
     destRect.y = ypos;
 
-    // Make collider half size and center it, matching player's hitbox
+    // Update collider
     collider.w = destRect.w / 2;
     collider.h = destRect.h / 2;
     collider.x = xpos + (destRect.w - collider.w) / 2;
     collider.y = ypos + (destRect.h - collider.h) / 2;
 }
 
-// Updated setAnimation method
+SDL_Rect Enemy::getAttackHitbox() const {
+    if (currentState != ENEMY_ATTACKING) {
+        return {0, 0, 0, 0};
+    }
+
+    SDL_Rect attackBox;
+    attackBox.w = collider.w / 2;
+    attackBox.h = collider.h;
+    
+    if (facingRight) {
+        attackBox.x = collider.x + collider.w;
+    } else {
+        attackBox.x = collider.x - attackBox.w;
+    }
+    
+    attackBox.y = collider.y;
+    return attackBox;
+}
+
 void Enemy::setAnimation(EnemyAnimationState newState) {
     if (currentState == newState) return;
     
@@ -177,6 +266,13 @@ void Enemy::setAnimation(EnemyAnimationState newState) {
             currentFrameWidth = runFrameWidth;
             currentFrameHeight = runFrameHeight;
             currentAnimSpeed = runAnimSpeed;
+            break;
+        case ENEMY_ATTACKING:
+            currentTexture = attackTexture;
+            currentTotalFrames = attackTotalFrames;
+            currentFrameWidth = attackFrameWidth;
+            currentFrameHeight = attackFrameHeight;
+            currentAnimSpeed = attackAnimSpeed;
             break;
         case ENEMY_TAKE_HIT:
             currentTexture = takeHitTexture;
@@ -202,52 +298,69 @@ void Enemy::setAnimation(EnemyAnimationState newState) {
     }
 }
 
-// Updated takeHit method
 void Enemy::takeHit() {
-    if (!isInHitState) {
+    if (!isInHitState && !isPermanentlyDisabled) {
         isInHitState = true;
         takeHitStartTime = SDL_GetTicks();
         takeHitDuration = takeHitTotalFrames * takeHitAnimSpeed;
         if (takeHitDuration <= 0) takeHitDuration = 300;
 
+        // Start flash effect
+        isFlashing = true;
+        flashStartTime = SDL_GetTicks();
+        flashAlpha = 255;
+
         setAnimation(ENEMY_TAKE_HIT);
-        velocityX = 0.0f;
-        velocityY = -2.0f;
+        
+        // Add knockback effect based on the direction the enemy is facing
+        float knockbackForce = 5.0f;
+        velocityX = facingRight ? -knockbackForce : knockbackForce;
+        velocityY = -4.0f; // Add a small upward force for visual effect
         onGround = false;
     }
 }
 
-// Updated aiMoveTowards method
 void Enemy::aiMoveTowards(int targetX) {
-    float moveSpeed = 2.0f;  // Slightly slower than player's speed
+    float moveSpeed = 2.0f;
+    float distanceToTarget = targetX - xpos;
+    float minMoveThreshold = 5.0f;
     
-    if (targetX < xpos) {
-        velocityX = -moveSpeed;
-        facingRight = false;
-        if (currentState != ENEMY_RUNNING && !isInHitState) {
-            setAnimation(ENEMY_RUNNING);
-        }
-    } else if (targetX > xpos) {
-        velocityX = moveSpeed;
-        facingRight = true;
-        if (currentState != ENEMY_RUNNING && !isInHitState) {
+    if (std::abs(distanceToTarget) > minMoveThreshold) {
+        velocityX = (distanceToTarget > 0) ? moveSpeed : -moveSpeed;
+        facingRight = velocityX > 0;
+        
+        if (currentState != ENEMY_RUNNING && !isInHitState && !isPermanentlyDisabled) {
             setAnimation(ENEMY_RUNNING);
         }
     } else {
         velocityX = 0.0f;
-        if (currentState != ENEMY_IDLE && !isInHitState) {
+        if (currentState != ENEMY_IDLE && !isInHitState && !isPermanentlyDisabled) {
             setAnimation(ENEMY_IDLE);
         }
     }
 }
 
-// Updated render methods
 void Enemy::render() {
     if (!currentTexture) return;
     SDL_RendererFlip flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
+
+    // If flashing, set the blend mode and color mod
+    if (isFlashing) {
+        SDL_SetTextureBlendMode(currentTexture, SDL_BLENDMODE_ADD);
+        SDL_SetTextureColorMod(currentTexture, 255, 255, 255);
+        SDL_SetTextureAlphaMod(currentTexture, flashAlpha);
+    }
+
     SDL_RenderCopyEx(Game::renderer, currentTexture, &srcRect, &destRect, 0, NULL, flip);
 
-    // Draw enemy hitbox (in blue) with proper centering
+    // Reset texture properties after rendering
+    if (isFlashing) {
+        SDL_SetTextureBlendMode(currentTexture, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureColorMod(currentTexture, 255, 255, 255);
+        SDL_SetTextureAlphaMod(currentTexture, 255);
+    }
+
+    // Draw enemy collider box (blue)
     SDL_Rect tempCollider = {
         xpos + (destRect.w - collider.w) / 2,
         ypos + (destRect.h - collider.h) / 2,
@@ -264,6 +377,21 @@ void Enemy::render() {
         outline.h += i * 2;
         SDL_RenderDrawRect(Game::renderer, &outline);
     }
+
+    // Draw attack hitbox when attacking (red)
+    if (currentState == ENEMY_ATTACKING) {
+        SDL_Rect attackBox = getAttackHitbox();
+        SDL_SetRenderDrawColor(Game::renderer, 255, 0, 0, 255);
+        for (int i = 0; i < 3; i++) {
+            SDL_Rect outline = attackBox;
+            outline.x -= i;
+            outline.y -= i;
+            outline.w += i * 2;
+            outline.h += i * 2;
+            SDL_RenderDrawRect(Game::renderer, &outline);
+        }
+    }
+
     SDL_SetRenderDrawColor(Game::renderer, 0, 0, 0, 255);
 }
 
@@ -271,9 +399,24 @@ void Enemy::render(int x, int y) {
     if (!currentTexture) return;
     SDL_Rect tempDestRect = {x, y, destRect.w, destRect.h};
     SDL_RendererFlip flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
+
+    // If flashing, set the blend mode and color mod
+    if (isFlashing) {
+        SDL_SetTextureBlendMode(currentTexture, SDL_BLENDMODE_ADD);
+        SDL_SetTextureColorMod(currentTexture, 255, 255, 255);
+        SDL_SetTextureAlphaMod(currentTexture, flashAlpha);
+    }
+
     SDL_RenderCopyEx(Game::renderer, currentTexture, &srcRect, &tempDestRect, 0, NULL, flip);
 
-    // Draw enemy hitbox (in blue) with camera offset and proper centering
+    // Reset texture properties after rendering
+    if (isFlashing) {
+        SDL_SetTextureBlendMode(currentTexture, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureColorMod(currentTexture, 255, 255, 255);
+        SDL_SetTextureAlphaMod(currentTexture, 255);
+    }
+
+    // Draw enemy collider box (blue) with camera offset
     SDL_Rect tempCollider = {
         x + (destRect.w - collider.w) / 2,
         y + (destRect.h - collider.h) / 2,
@@ -290,5 +433,24 @@ void Enemy::render(int x, int y) {
         outline.h += i * 2;
         SDL_RenderDrawRect(Game::renderer, &outline);
     }
+
+    // Draw attack hitbox when attacking (red)
+    if (currentState == ENEMY_ATTACKING) {
+        SDL_Rect attackBox = getAttackHitbox();
+        // Adjust attack box for camera position
+        attackBox.x = x + (attackBox.x - xpos);
+        attackBox.y = y + (attackBox.y - ypos);
+
+        SDL_SetRenderDrawColor(Game::renderer, 255, 0, 0, 255);
+        for (int i = 0; i < 3; i++) {
+            SDL_Rect outline = attackBox;
+            outline.x -= i;
+            outline.y -= i;
+            outline.w += i * 2;
+            outline.h += i * 2;
+            SDL_RenderDrawRect(Game::renderer, &outline);
+        }
+    }
+
     SDL_SetRenderDrawColor(Game::renderer, 0, 0, 0, 255);
 }

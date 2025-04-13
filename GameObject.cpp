@@ -46,10 +46,12 @@ bool GameObject::loadAnimationData(const char* path, SDL_Texture*& texture, int&
     return true;
 }
 
-GameObject::GameObject(const char* idleTexturePath, const char* runTexturePath, const char* jumpTexturePath, const char* attackTexturePath,
-                       int x, int y, float scale)
+GameObject::GameObject(const char* idleTexturePath, const char* runTexturePath, 
+    const char* jumpTexturePath, const char* attackTexturePath, 
+    const char* takeHitTexturePath, const char* deathTexturePath,
+    int x, int y, float scale)
     : prevX(x), prevY(y),
-      velocityX(0.0f), velocityY(0.0f), 
+      velocityX(0.0f), velocityY(0.0f),
       onGround(false),
       facingRight(true),
       destRect{},
@@ -63,25 +65,33 @@ GameObject::GameObject(const char* idleTexturePath, const char* runTexturePath, 
       parryFrameIndex(0),
       parryStartTime(0),
       parryDuration(300),
+      inHitState(false),
+      permanentlyDisabled(false),
+      takeHitStartTime(0),
+      takeHitDuration(300),
       rng(static_cast<unsigned int>(std::time(0))),
       xpos(x),
       ypos(y),
       scale(scale),
       srcRect{},
       collider{},
-      colliderOffsetX(0),  // Remove offset
-      colliderOffsetY(0),  // Remove offset
+      colliderOffsetX(0),
+      colliderOffsetY(0),
       idleTexture(nullptr),
       runTexture(nullptr),
       jumpTexture(nullptr),
       attackTexture(nullptr),
       parryTexture(nullptr),
+      takeHitTexture(nullptr),
+      deathTexture(nullptr),
       currentTexture(nullptr),
       idleTotalFrames(0),
       runTotalFrames(0),
       jumpTotalFrames(0),
       attackTotalFrames(0),
       parryTotalFrames(0),
+      takeHitTotalFrames(0),
+      deathTotalFrames(0),
       currentTotalFrames(0),
       idleFrameWidth(0),
       idleFrameHeight(0),
@@ -93,17 +103,27 @@ GameObject::GameObject(const char* idleTexturePath, const char* runTexturePath, 
       attackFrameHeight(0),
       parryFrameWidth(0),
       parryFrameHeight(0),
+      takeHitFrameWidth(0),
+      takeHitFrameHeight(0),
+      deathFrameWidth(0),
+      deathFrameHeight(0),
       currentFrameWidth(0),
       currentFrameHeight(0),
-      idleAnimSpeed(100),    // Faster idle animation (was 400)
-      runAnimSpeed(80),     // Faster run animation (was 300)
-      jumpAnimSpeed(150),   
-      attackAnimSpeed(50),  
+      idleAnimSpeed(100),
+      runAnimSpeed(80),
+      jumpAnimSpeed(80),
+      attackAnimSpeed(50),
       parryAnimSpeed(80),
-      currentAnimSpeed(100), // Match the initial idle speed
-      completeRunAnimation(false)
+      takeHitAnimSpeed(100),
+      deathAnimSpeed(150),
+      currentAnimSpeed(100),
+      completeRunAnimation(false),
+      idleFrameCount(0),
+      runFrameCount(0),
+      maxIdleFrames(0),
+      maxRunFrames(0)
 {
-    // Load textures and validate
+    // Load required textures with validation
     bool idleLoaded = loadAnimationData(idleTexturePath, idleTexture, idleTotalFrames, idleFrameWidth, idleFrameHeight);
     if (!idleLoaded) {
         std::cerr << "Critical Error: Failed to load idle texture!" << std::endl;
@@ -120,28 +140,54 @@ GameObject::GameObject(const char* idleTexturePath, const char* runTexturePath, 
     // Set up initial rectangles
     destRect = { x, y, static_cast<int>(currentFrameWidth * scale), static_cast<int>(currentFrameHeight * scale) };
     srcRect = { 0, 0, currentFrameWidth, currentFrameHeight };
-    
-    // Make collider match destRect exactly
     collider = { x, y, static_cast<int>(currentFrameWidth * scale), static_cast<int>(currentFrameHeight * scale) };
 
     // Load other animations
     loadAnimationData(runTexturePath, runTexture, runTotalFrames, runFrameWidth, runFrameHeight);
     loadAnimationData(jumpTexturePath, jumpTexture, jumpTotalFrames, jumpFrameWidth, jumpFrameHeight);
     loadAnimationData(attackTexturePath, attackTexture, attackTotalFrames, attackFrameWidth, attackFrameHeight);
+    loadAnimationData(takeHitTexturePath, takeHitTexture, takeHitTotalFrames, takeHitFrameWidth, takeHitFrameHeight);
+    loadAnimationData(deathTexturePath, deathTexture, deathTotalFrames, deathFrameWidth, deathFrameHeight);
+
+    // Set max frames
+    maxIdleFrames = idleTotalFrames;
+    maxRunFrames = runTotalFrames;
 }
 
 GameObject::~GameObject() {
+    // Clean up all textures
     if (idleTexture) SDL_DestroyTexture(idleTexture);
     if (runTexture) SDL_DestroyTexture(runTexture);
-    if (jumpTexture) SDL_DestroyTexture(jumpTexture); 
-    if (attackTexture) SDL_DestroyTexture(attackTexture); // Clean up attack texture
+    if (jumpTexture) SDL_DestroyTexture(jumpTexture);
+    if (attackTexture) SDL_DestroyTexture(attackTexture);
+    if (parryTexture) SDL_DestroyTexture(parryTexture);
+    if (takeHitTexture) SDL_DestroyTexture(takeHitTexture);
+    if (deathTexture) SDL_DestroyTexture(deathTexture);
+}
+
+void GameObject::takeHit() {
+    if (!inHitState && !permanentlyDisabled) {
+        inHitState = true;
+        takeHitStartTime = SDL_GetTicks();
+        takeHitDuration = takeHitTotalFrames * takeHitAnimSpeed;
+        if (takeHitDuration <= 0) takeHitDuration = 300;
+
+        setAnimation(TAKE_HIT);
+        velocityX = 0.0f;
+        velocityY = -2.0f;
+        onGround = false;
+    }
 }
 
 void GameObject::setAnimation(AnimationState newState) {
-    // Prevent resetting if already in the same state, unless it's Parry (needs specific frame setup)
-    if (currentState == newState && currentTexture != nullptr && newState != PARRYING) return;
+    if (currentState == newState && currentTexture != nullptr && newState != PARRYING) {
+        return;
+    }
 
-    switch (newState) {
+    AnimationState prevState = currentState;
+    currentState = newState;
+
+    switch(newState) {
         case IDLE:
             if (!idleTexture) return;
             currentTexture = idleTexture;
@@ -149,6 +195,10 @@ void GameObject::setAnimation(AnimationState newState) {
             currentFrameWidth = idleFrameWidth;
             currentFrameHeight = idleFrameHeight;
             currentAnimSpeed = idleAnimSpeed;
+            if (prevState != IDLE) {
+                idleFrameCount = 0;
+                currentFrame = 0;
+            }
             break;
         case RUNNING:
             if (!runTexture) return;
@@ -157,6 +207,10 @@ void GameObject::setAnimation(AnimationState newState) {
             currentFrameWidth = runFrameWidth;
             currentFrameHeight = runFrameHeight;
             currentAnimSpeed = runAnimSpeed;
+            if (prevState != RUNNING) {
+                runFrameCount = 0;
+                currentFrame = 0;
+            }
             break;
         case JUMPING:
             if (!jumpTexture) return;
@@ -165,6 +219,7 @@ void GameObject::setAnimation(AnimationState newState) {
             currentFrameWidth = jumpFrameWidth;
             currentFrameHeight = jumpFrameHeight;
             currentAnimSpeed = jumpAnimSpeed;
+            currentFrame = 0; // Always start jump from beginning
             break;
         case ATTACKING:
             if (!attackTexture) return;
@@ -173,46 +228,48 @@ void GameObject::setAnimation(AnimationState newState) {
             currentFrameWidth = attackFrameWidth;
             currentFrameHeight = attackFrameHeight;
             currentAnimSpeed = attackAnimSpeed;
+            currentFrame = 0; // Always start attack from beginning
             break;
         case PARRYING:
-            if (!attackTexture) return; // Use attack texture for parry frames
+            if (!attackTexture) return;
             currentTexture = attackTexture;
-            currentTotalFrames = attackTotalFrames; // Use total frames for consistency
+            currentTotalFrames = attackTotalFrames;
             currentFrameWidth = attackFrameWidth;
             currentFrameHeight = attackFrameHeight;
-            // Parry doesn't use animation speed, it holds a frame
-            currentAnimSpeed = 0; 
+            currentAnimSpeed = parryAnimSpeed;
+            break;
+        case TAKE_HIT:
+            if (!takeHitTexture) return;
+            currentTexture = takeHitTexture;
+            currentTotalFrames = takeHitTotalFrames;
+            currentFrameWidth = takeHitFrameWidth;
+            currentFrameHeight = takeHitFrameHeight;
+            currentAnimSpeed = takeHitAnimSpeed;
+            currentFrame = 0;
+            break;
+        case DEATH:
+            if (!deathTexture) return;
+            currentTexture = deathTexture;
+            currentTotalFrames = deathTotalFrames;
+            currentFrameWidth = deathFrameWidth;
+            currentFrameHeight = deathFrameHeight;
+            currentAnimSpeed = deathAnimSpeed;
+            currentFrame = 0;
             break;
     }
 
-    currentState = newState;
-    // Reset frame only if not starting a parry (parry sets its own frame index)
-    if (newState != PARRYING) {
-       currentFrame = 0; 
-    }
-    lastFrameTime = SDL_GetTicks(); 
-    
-    // Set specific frame for Parry immediately
-    if (currentState == PARRYING) {
-        currentFrame = parryFrameIndex; 
-        srcRect.x = parryFrameIndex * currentFrameWidth;
-        srcRect.y = 0;
-        srcRect.w = currentFrameWidth;
-        srcRect.h = currentFrameHeight;
-    } else {
-        srcRect = { 0, 0, currentFrameWidth, currentFrameHeight };
-    }
-
+    lastFrameTime = SDL_GetTicks();
+    srcRect = { currentFrame * currentFrameWidth, 0, currentFrameWidth, currentFrameHeight };
     destRect.w = static_cast<int>(currentFrameWidth * scale);
     destRect.h = static_cast<int>(currentFrameHeight * scale);
 }
 
 void GameObject::parry() {
     // Can only parry if not already attacking or parrying
-    if (!isAttacking && !isParrying) { 
+    if (!isAttacking && !isParrying) {
         isParrying = true;
         parryStartTime = SDL_GetTicks();
-        
+
         // Select a random frame from the attack animation
         if (attackTotalFrames > 0) {
             std::uniform_int_distribution<int> dist(0, attackTotalFrames - 1);
@@ -228,7 +285,7 @@ void GameObject::parry() {
 
 void GameObject::attack() {
     // Can only attack if not already attacking or parrying
-    if (!isAttacking && !isParrying) { 
+    if (!isAttacking && !isParrying) {
         isAttacking = true;
         attackStartTime = SDL_GetTicks();
         // Make attack animation slightly faster (50ms per frame instead of previous timing)
@@ -241,35 +298,40 @@ void GameObject::attack() {
 
 void GameObject::move(int dx) {
     float moveSpeed = 4.0f;
-    if (dx > 0) {
-        velocityX = moveSpeed;
-        facingRight = true;
-        
-        if (currentState != RUNNING && !isAttacking && !isParrying) {
-            setAnimation(RUNNING);
+    float minMoveThreshold = 0.5f;  // Threshold to prevent jittery state changes
+
+    if (dx != 0 && !isAttacking && !isParrying) {
+        // Smoothly adjust velocity
+        float targetVelocity = dx > 0 ? moveSpeed : -moveSpeed;
+        velocityX = targetVelocity;
+        facingRight = dx > 0;
+
+        // Only switch to running if we're on the ground and moving fast enough
+        if (onGround && std::fabs(velocityX) > minMoveThreshold) {
+            if (currentState != RUNNING) {
+                setAnimation(RUNNING);
+            }
         }
-    } else if (dx < 0) {
-        velocityX = -moveSpeed;
-        facingRight = false;
+    } else if (!isAttacking && !isParrying) {
+        // Smoothly decelerate to stop
+        velocityX = 0.0f;
         
-        if (currentState != RUNNING && !isAttacking && !isParrying) {
-            setAnimation(RUNNING);
-        }
-    } else {
-        // If no movement input and we're running, go back to idle
-        if (currentState == RUNNING && !isAttacking && !isParrying) {
-            setAnimation(IDLE);
+        // Only switch to idle when we've actually stopped and we're on the ground
+        if (onGround && std::fabs(velocityX) < minMoveThreshold) {
+            if (currentState != IDLE) {
+                setAnimation(IDLE);
+            }
         }
     }
 }
 
 void GameObject::jump() {
-    Physics::applyJump(this); 
+    Physics::applyJump(this);
 }
 
-void GameObject::revertPosition() { 
-    xpos = prevX; 
-    ypos = prevY; 
+void GameObject::revertPosition() {
+    xpos = prevX;
+    ypos = prevY;
     destRect.x = xpos;
     destRect.y = ypos;
 }
@@ -277,66 +339,69 @@ void GameObject::revertPosition() {
 void GameObject::update() {
     Uint32 currentTime = SDL_GetTicks();
 
-    // Handle parry state completion
-    if (isParrying) {
-        if (static_cast<int>(currentTime - parryStartTime) >= static_cast<int>(parryDuration)) {
-            isParrying = false;
-            setAnimation(IDLE);
+    // Handle hit state and death transition
+    if (inHitState) {
+        if (currentTime - takeHitStartTime >= takeHitDuration) {
+            inHitState = false;
+            permanentlyDisabled = true;
+            setAnimation(DEATH);
+            velocityX = 0.0f;
         }
     }
-    // Handle attack state completion and animation
-    else if (isAttacking) {
-        // Update attack animation frame
-        Uint32 elapsedTime = currentTime - lastFrameTime;
-        if (elapsedTime >= static_cast<Uint32>(attackAnimSpeed)) {
-            if (currentFrame < currentTotalFrames - 1) {
-                currentFrame++;
-                lastFrameTime = currentTime;
-            } else if (currentTime - attackStartTime >= attackDuration) {
-                isAttacking = false;
-                setAnimation(IDLE);
+
+    // Reset attack state when animation completes
+    if (isAttacking) {
+        if (currentTime - attackStartTime >= attackDuration) {
+            isAttacking = false;
+            if (!inHitState && !permanentlyDisabled) {
+                setAnimation(onGround ? IDLE : JUMPING);
             }
         }
     }
-    // Normal animation state logic (only if not attacking or parrying)
-    else {
-        // First handle movement state transitions
-        if (!onGround) {
-            if (currentState != JUMPING) {
-                setAnimation(JUMPING);
-            }
-        } else if (std::fabs(velocityX) > 0.1f) {
-            if (currentState != RUNNING) {
+
+    // State transitions
+    if (!isParrying && !isAttacking && !inHitState && !permanentlyDisabled) {
+        if (!onGround && currentState != JUMPING) {
+            setAnimation(JUMPING);
+        } else if (onGround) {
+            bool isMoving = std::fabs(velocityX) > 0.5f;
+            if (isMoving && currentState != RUNNING) {
                 setAnimation(RUNNING);
-            }
-        } else {
-            velocityX = 0.0f; // Ensure velocity is zeroed when idle
-            if (currentState != IDLE) {
+            } else if (!isMoving && currentState != IDLE) {
                 setAnimation(IDLE);
             }
         }
+    }
 
-        // Then handle animation frame updates
+    // Handle frame updates for all states
+    if (currentTexture && currentTotalFrames > 1) {
         Uint32 elapsedTime = currentTime - lastFrameTime;
-        if (currentTotalFrames > 1 && elapsedTime >= static_cast<Uint32>(currentAnimSpeed)) {
-            currentFrame = (currentFrame + 1) % currentTotalFrames;
+        if (elapsedTime >= static_cast<Uint32>(currentAnimSpeed)) {
             lastFrameTime = currentTime;
+            
+            if (currentState == DEATH || currentState == TAKE_HIT) {
+                if (currentFrame < currentTotalFrames - 1) {
+                    currentFrame++;
+                }
+            } else {
+                currentFrame = (currentFrame + 1) % currentTotalFrames;
+            }
         }
     }
 
-    // Always update source rectangle based on current frame
-    srcRect.x = currentFrame * currentFrameWidth;
+    // Update visual state with frame validation
+    srcRect.x = (currentFrame % currentTotalFrames) * currentFrameWidth;
     srcRect.y = 0;
     srcRect.w = currentFrameWidth;
     srcRect.h = currentFrameHeight;
-    
-    // Update destination rectangle size and position
+
+    // Update position and size
     destRect.w = static_cast<int>(currentFrameWidth * scale);
     destRect.h = static_cast<int>(currentFrameHeight * scale);
     destRect.x = xpos;
     destRect.y = ypos;
 
-    // Make collider half the size and center it
+    // Update collider
     collider.w = destRect.w / 2;
     collider.h = destRect.h / 2;
     collider.x = xpos + (destRect.w - collider.w) / 2;
@@ -352,7 +417,7 @@ void GameObject::renderSprite(int x, int y) {
 
 void GameObject::renderHitboxes(int x, int y) {
     if (!Game::renderer) return;
-    
+
     // Draw character collider box with thicker lines (green)
     SDL_Rect tempCollider = {
         x + (destRect.w - collider.w) / 2, // Center horizontally
@@ -360,7 +425,7 @@ void GameObject::renderHitboxes(int x, int y) {
         collider.w,
         collider.h
     };
-    
+
     SDL_SetRenderDrawColor(Game::renderer, 0, 255, 0, 255);
     // Draw thick lines by rendering multiple offset rectangles
     for (int i = 0; i < 3; i++) {
@@ -371,14 +436,14 @@ void GameObject::renderHitboxes(int x, int y) {
         outline.h += i * 2;
         SDL_RenderDrawRect(Game::renderer, &outline);
     }
-    
+
     // Draw attack hitbox when attacking (red)
     if (currentState == ATTACKING) {
         SDL_Rect attackBox = getAttackHitbox();
         // Adjust for render position while maintaining centering
         attackBox.x = x + (attackBox.x - xpos);
         attackBox.y = y + (destRect.h - attackBox.h) / 2;
-        
+
         SDL_SetRenderDrawColor(Game::renderer, 255, 0, 0, 255);
         // Draw thick lines for attack hitbox
         for (int i = 0; i < 3; i++) {
@@ -390,7 +455,7 @@ void GameObject::renderHitboxes(int x, int y) {
             SDL_RenderDrawRect(Game::renderer, &outline);
         }
     }
-    
+
     // Reset draw color
     SDL_SetRenderDrawColor(Game::renderer, 0, 0, 0, 255);
 }
@@ -410,21 +475,21 @@ SDL_Rect GameObject::getAttackHitbox() const {
     if (currentState != ATTACKING) {
         return {0, 0, 0, 0};
     }
-    
+
     SDL_Rect attackBox;
     // Match the collider's half-size dimensions
     attackBox.w = collider.w / 3.5;
     attackBox.h = collider.h ;
-    
+
     // Position the attack hitbox next to the collider
     if (facingRight) {
         attackBox.x = collider.x + 50; // Right of the player's hitbox
     } else {
         attackBox.x = collider.x; // Left of the player's hitbox
     }
-    
+
     // Match the vertical position of the player's hitbox
     attackBox.y = collider.y;
-    
+
     return attackBox;
 }
