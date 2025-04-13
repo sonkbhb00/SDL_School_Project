@@ -36,6 +36,17 @@ void Game::init(const char* title, int xPos, int yPos, int width, int height) {
         isRunning = true;
         IMG_Init(IMG_INIT_PNG);
 
+        // Initialize audio manager
+        if (!AudioManager::getInstance().init()) {
+            std::cout << "Failed to initialize AudioManager!" << std::endl;
+            isRunning = false;
+            return;
+        }
+
+        // Play background music
+        AudioManager::getInstance().playMusic("audio/medieval-star-188280.mp3");
+        AudioManager::getInstance().setMusicVolume(64); // Set to 50% volume
+
         // Use original TextureManager calls (assuming it used Game::renderer)
         backgroundTexture = TextureManager::loadTexture("assets/BG1.png");
         foregroundTexture = TextureManager::loadTexture("assets/BG2.png");
@@ -145,7 +156,7 @@ void Game::update() {
 
         // Make the enemy move toward the player or attack based on distance
         if (!enemy->isPermanentlyDisabled && !enemy->isInHitState) {
-            if (distance > 70.0f) { // Match the new shorter attack range
+            if (distance > 65.0f) { // Match the new shorter attack range
                 enemy->aiMoveTowards(player->getX());
             } else { // If within attack range, stop and try to attack
                 enemy->velocityX = 0.0f;
@@ -177,8 +188,15 @@ void Game::update() {
 
             // Check if enemy's attack hits player
             if (SDL_HasIntersection(&enemyAttackBox, &playerCollider)) {
-                std::cout << "Player hit by enemy!" << std::endl;
-                player->takeHit(); // Add this line to make player react to hits
+                if (player->isParrying) {
+                    // Successful parry - move player back
+                    float parryKnockback = 10.0f;
+                    player->velocityX = player->facingRight ? -parryKnockback : parryKnockback;
+                    std::cout << "Attack parried!" << std::endl;
+                } else {
+                    std::cout << "Player hit by enemy!" << std::endl;
+                    player->takeHit();
+                }
             }
         }
     }
@@ -275,6 +293,9 @@ void Game::render() {
 }
 
 void Game::clean() {
+    // Cleanup audio before other resources
+    AudioManager::getInstance().cleanup();
+
     // Destroy textures - TextureManager::cleanUp() assumes it handles this
     TextureManager::cleanUp();
     delete player;

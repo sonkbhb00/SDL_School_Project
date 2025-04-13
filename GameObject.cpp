@@ -336,14 +336,16 @@ void GameObject::parry() {
     if (!isAttacking && !isParrying && !inHitState && !permanentlyDisabled) {
         isParrying = true;
         parryStartTime = SDL_GetTicks();
+        parryDuration = 200; // Shorter parry window for more precise timing
         currentTexture = attackTexture;
-
-        // Randomly select one of the 6 attack frames (0-5)
-        parryFrameIndex = std::rand() % 6;
-        currentFrame = parryFrameIndex;
-
-        // Set up the source rectangle for the selected frame
+        currentState = PARRYING;
+        
+        // Use a specific frame for parry animation
+        currentFrame = 2; // Using frame 2 of attack animation for parry pose
         srcRect.x = currentFrame * frameWidth;
+        
+        // Reset any existing velocity when parrying
+        velocityX = 0.0f;
     }
 }
 
