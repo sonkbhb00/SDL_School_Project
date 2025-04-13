@@ -22,7 +22,7 @@
 
 1741667082 c:\users\bui son\onedrive\desktop\demo_sdl\demo\combat.hpp
 
-1744537565 c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.h
+1744553504 c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.h
 	<SDL.h>
 	"Game.hpp"
 
@@ -77,7 +77,7 @@
 	<SDL.h>
 	"Game.hpp"
 
-1744538597 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.cpp
+1744553675 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.cpp
 	"GameObject.h"
 	"Game.hpp"
 	"Physics.hpp"

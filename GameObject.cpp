@@ -23,6 +23,10 @@ GameObject::GameObject(int x, int y, int width, int height)
       permanentlyDisabled(false),
       takeHitStartTime(0),
       takeHitDuration(300),
+      isFlashing(false),
+      flashStartTime(0),
+      flashDuration(150),
+      flashAlpha(255),
       xpos(x),
       ypos(y),
       currentFrame(0),
@@ -36,8 +40,10 @@ GameObject::GameObject(int x, int y, int width, int height)
     idleTexture = TextureManager::loadTexture("assets/Idle.png");
     runTexture = TextureManager::loadTexture("assets/Run.png");
     attackTexture = TextureManager::loadTexture("assets/Attack.png");
+    takeHitTexture = TextureManager::loadTexture("assets/Take Hit.png");
+    deathTexture = TextureManager::loadTexture("assets/Death.png");
 
-    if (!idleTexture || !runTexture || !attackTexture) {
+    if (!idleTexture || !runTexture || !attackTexture || !takeHitTexture || !deathTexture) {
         std::cerr << "Failed to load textures" << std::endl;
         return;
     }
@@ -70,6 +76,18 @@ GameObject::~GameObject() {
 }
 
 void GameObject::update() {
+    // Update flash effect
+    if (isFlashing) {
+        Uint32 currentTime = SDL_GetTicks();
+        Uint32 flashElapsed = currentTime - flashStartTime;
+        if (flashElapsed >= flashDuration) {
+            isFlashing = false;
+        } else {
+            // Fade out the flash
+            flashAlpha = static_cast<Uint8>(255 * (1.0f - static_cast<float>(flashElapsed) / flashDuration));
+        }
+    }
+
     if (inHitState) {
         if (SDL_GetTicks() - takeHitStartTime >= static_cast<Uint32>(takeHitDuration)) {
             inHitState = false;
@@ -121,10 +139,19 @@ void GameObject::update() {
         if (currentTexture == idleTexture) currentMaxFrames = 11;
         else if (currentTexture == runTexture) currentMaxFrames = 8;
         else if (currentTexture == attackTexture) currentMaxFrames = 6;
+        else if (currentTexture == takeHitTexture) currentMaxFrames = 4;
+        else if (currentTexture == deathTexture) currentMaxFrames = 9;
         else currentMaxFrames = totalFrames;
 
+        // Handle animations that should only play once (death)
+        if (permanentlyDisabled) {
+            if (currentFrame < currentMaxFrames - 1) {
+                currentFrame++;
+            }
+            // Stay on last frame
+        }
         // Handle attack animation
-        if (isAttacking) {
+        else if (isAttacking) {
             if (currentFrame < currentMaxFrames - 1) {
                 currentFrame++;
             }
@@ -177,7 +204,29 @@ void GameObject::renderSprite(int x, int y) {
 
     SDL_Rect tempDestRect = { x, y, destRect.w, destRect.h };
     SDL_RendererFlip flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
+
+    // Update texture based on state
+    if (permanentlyDisabled) {
+        currentTexture = deathTexture;
+    } else if (inHitState) {
+        currentTexture = takeHitTexture;
+    }
+
+    // Handle flash effect
+    if (isFlashing) {
+        SDL_SetTextureBlendMode(currentTexture, SDL_BLENDMODE_ADD);
+        SDL_SetTextureColorMod(currentTexture, 255, 255, 255);
+        SDL_SetTextureAlphaMod(currentTexture, flashAlpha);
+    }
+
     SDL_RenderCopyEx(Game::renderer, currentTexture, &srcRect, &tempDestRect, 0, NULL, flip);
+
+    // Reset texture properties after rendering
+    if (isFlashing) {
+        SDL_SetTextureBlendMode(currentTexture, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureColorMod(currentTexture, 255, 255, 255);
+        SDL_SetTextureAlphaMod(currentTexture, 255);
+    }
 }
 
 void GameObject::renderHitboxes(int x, int y) {
@@ -265,9 +314,20 @@ void GameObject::takeHit() {
     if (!inHitState && !permanentlyDisabled) {
         inHitState = true;
         takeHitStartTime = SDL_GetTicks();
+        takeHitDuration = 300; // Match the duration in constructor
         currentState = TAKE_HIT;
-        velocityX = 0.0f;
-        velocityY = -2.0f;
+        currentTexture = takeHitTexture;
+        currentFrame = 0;
+        
+        // Start flash effect
+        isFlashing = true;
+        flashStartTime = SDL_GetTicks();
+        flashAlpha = 255;
+
+        // Add knockback effect
+        float knockbackForce = 5.0f;
+        velocityX = facingRight ? -knockbackForce : knockbackForce;
+        velocityY = -4.0f; // Add a small upward force for visual effect
         onGround = false;
     }
 }
