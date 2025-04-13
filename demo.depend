@@ -22,15 +22,16 @@
 
 1741667082 c:\users\bui son\onedrive\desktop\demo_sdl\demo\combat.hpp
 
-1744480205 c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.h
+1744517915 c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.h
 	<SDL.h>
 	"Game.hpp"
 	<vector>
 	<random>
 	<ctime>
 
-1744481415 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\enemy.cpp
+1744517915 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\enemy.cpp
 	"Enemy.h"
+	"GameObject.h"
 	"TextureManager.h"
 	"Game.hpp"
 	"Physics.hpp"
@@ -39,7 +40,7 @@
 	<cstring>
 	<cmath>
 
-1744462563 c:\users\bui son\onedrive\desktop\demo_sdl\demo\enemy.h
+1744517915 c:\users\bui son\onedrive\desktop\demo_sdl\demo\enemy.h
 	<SDL.h>
 	"Game.hpp"
 	"TextureManager.h"
@@ -79,7 +80,7 @@
 	<SDL.h>
 	"Game.hpp"
 
-1744481522 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.cpp
+1744518190 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.cpp
 	"GameObject.h"
 	"TextureManager.h"
 	"Game.hpp"
@@ -92,7 +93,7 @@
 	<algorithm>
 	<ctime>
 
-1744479678 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.cpp
+1744518169 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.cpp
 	"Game.hpp"
 	"GameObject.h"
 	"TextureManager.h"

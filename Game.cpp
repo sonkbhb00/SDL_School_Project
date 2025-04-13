@@ -41,15 +41,15 @@ void Game::init(const char* title, int xPos, int yPos, int width, int height) {
         closestTexture = TextureManager::loadTexture("assets/BG3.png");
 
         // Initialize player
-        player = new GameObject("assets/Idle.png", "assets/Run.png", "assets/Jump.png", "assets/Attack.png", 50, 50, 1.0f);
+        player = new GameObject("assets/Idle.png", "assets/Run.png", "assets/Jump.png", "assets/Attack.png", "assets/Take Hit.png", "assets/Death.png", 50, 50, 1.0f);
         if (player == nullptr) { 
             std::cerr << "Failed to create player object!" << std::endl;
             isRunning = false; 
             return; 
         }
 
-        // Initialize enemy
-        enemy = new Enemy("assets/Idle.png", "assets/Run.png", "assets/Take Hit.png", "assets/Death.png", 250, 50, 1.0f);
+        // Initialize enemy with attack texture
+        enemy = new Enemy("assets/Idle.png", "assets/Run.png", "assets/Attack.png", "assets/Take Hit.png", "assets/Death.png", 250, 50, 1.0f);
         if (enemy == nullptr) {
             std::cerr << "Failed to create enemy object!" << std::endl;
             isRunning = false;
@@ -137,14 +137,39 @@ void Game::update() {
         enemy->prevX = enemy->getX();
         enemy->prevY = enemy->getY();
         
+        // Make the enemy move toward the player
+        if (!enemy->isPermanentlyDisabled && !enemy->isInHitState) {
+            enemy->aiMoveTowards(player->getX());
+        }
+        
         Physics::applyGravity(enemy);
         Physics::applyFriction(enemy);
 
-        // Update animation state
-        enemy->update(nullptr); // No need for mapData anymore
+        // Update enemy with player reference for attack behavior
+        enemy->update(player);
+
+        // Handle collisions between enemy attacks and player
+        if (enemy->getState() == ENEMY_ATTACKING) {
+            SDL_Rect enemyAttackBox = enemy->getAttackHitbox();
+            SDL_Rect playerCollider = player->getCollider();
+            
+            // Adjust collision boxes for camera if needed
+            if (!lockCamera) {
+                enemyAttackBox.x -= cameraX;
+                enemyAttackBox.y -= cameraY;
+                playerCollider.x -= cameraX;
+                playerCollider.y -= cameraY;
+            }
+            
+            // Check if enemy's attack hits player
+            if (SDL_HasIntersection(&enemyAttackBox, &playerCollider)) {
+                std::cout << "Player hit by enemy!" << std::endl;
+                player->takeHit(); // Add this line to make player react to hits
+            }
+        }
     }
 
-    // Attack hit detection
+    // Handle player's attack hitting enemy
     if (player && enemy && player->getState() == ATTACKING) {
         SDL_Rect playerAttackBox = player->getAttackHitbox();
         SDL_Rect enemyCollider = enemy->getCollider();
