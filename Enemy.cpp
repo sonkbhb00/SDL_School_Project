@@ -46,7 +46,7 @@ Enemy::Enemy(const char* idleTexturePath, const char* runTexturePath, const char
       isAttacking(false),
       attackStartTime(0),
       attackDuration(400),
-      attackRange(150.0f), // Updated to account for 50px forward attack + hitbox width
+      attackRange(70.0f), // Reduced from 150.0f to 80.0f to require getting closer
       lastAttackTime(0),
       attackCooldown(2000),
       idleTotalFrames(0), runTotalFrames(0), attackTotalFrames(0),

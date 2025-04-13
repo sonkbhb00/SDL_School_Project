@@ -145,7 +145,7 @@ void Game::update() {
 
         // Make the enemy move toward the player or attack based on distance
         if (!enemy->isPermanentlyDisabled && !enemy->isInHitState) {
-            if (distance > 150.0f) { // Match the attack range set in Enemy constructor
+            if (distance > 70.0f) { // Match the new shorter attack range
                 enemy->aiMoveTowards(player->getX());
             } else { // If within attack range, stop and try to attack
                 enemy->velocityX = 0.0f;
