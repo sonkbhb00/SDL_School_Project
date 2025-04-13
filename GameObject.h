@@ -62,6 +62,13 @@ public:
     Uint32 takeHitStartTime;
     Uint32 takeHitDuration;
 
+    bool isFlashing;
+    Uint32 flashStartTime;
+    Uint32 flashDuration;
+    Uint8 flashAlpha;
+    SDL_Texture* takeHitTexture;
+    SDL_Texture* deathTexture;
+
 private:
     int xpos, ypos;
     SDL_Rect srcRect;
