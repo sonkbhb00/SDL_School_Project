@@ -1,5 +1,6 @@
 #pragma once
 #include <SDL.h>
+#include "AudioManager.h"
 
 // Forward declarations
 class GameObject;
@@ -46,4 +47,4 @@ private:
     SDL_Texture* closestTexture;    // Closest background (BG3)
     int cameraX, cameraY;           // Camera position variables
     bool lockCamera;                // Flag to lock camera and constrain player
-}; 
+};
