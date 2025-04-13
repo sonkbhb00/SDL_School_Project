@@ -15,13 +15,13 @@ enum EnemyAnimationState {
     ENEMY_JUMPING,
     ENEMY_ATTACKING,
     ENEMY_TAKE_HIT,
-    ENEMY_DEATH 
+    ENEMY_DEATH
 };
 
 class Enemy {
 public:
     Enemy(const char* idleTexturePath, const char* runTexturePath, const char* attackTexturePath,
-          const char* takeHitTexturePath, const char* deathTexturePath, 
+          const char* takeHitTexturePath, const char* deathTexturePath,
           int x, int y, float scale = 1.0f);
     ~Enemy();
 
@@ -49,7 +49,7 @@ public:
     bool onGround;
     bool isInHitState;
     bool isPermanentlyDisabled;
-    
+
     SDL_Rect destRect;
     EnemyAnimationState currentState;
     int currentFrame;
@@ -94,11 +94,11 @@ private:
     Uint32 flashStartTime;
     Uint32 flashDuration;
     Uint8 flashAlpha;
-    
+
     bool loadEnemyAnimationData(const char* path, SDL_Texture*& texture, int& totalFrames, int& frameWidth, int& frameHeight);
     void setAnimation(EnemyAnimationState newState);
     void tryAttack(const GameObject* player);
-    
+
     friend class Physics;
     friend class Game;
 };
