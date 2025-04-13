@@ -46,9 +46,9 @@ Enemy::Enemy(const char* idleTexturePath, const char* runTexturePath, const char
       isAttacking(false),
       attackStartTime(0),
       attackDuration(400),
-      attackRange(70.0f), // Reduced from 150.0f to 80.0f to require getting closer
+      attackRange(65.0f), // Reduced from 80.0f to 55.0f to match Game.cpp
       lastAttackTime(0),
-      attackCooldown(2000),
+      attackCooldown(1000),
       idleTotalFrames(0), runTotalFrames(0), attackTotalFrames(0),
       takeHitTotalFrames(0), deathTotalFrames(0), currentTotalFrames(0),
       idleFrameWidth(0), idleFrameHeight(0), runFrameWidth(0), runFrameHeight(0),
@@ -110,7 +110,8 @@ Enemy::~Enemy() {
 }
 
 void Enemy::tryAttack(const GameObject* player) {
-    if (!player || isPermanentlyDisabled || isInHitState || isAttacking) return;
+    // Don't attack if any of these conditions are true
+    if (!player || isPermanentlyDisabled || isInHitState || isAttacking || player->permanentlyDisabled) return;
 
     Uint32 currentTime = SDL_GetTicks();
     if (currentTime - lastAttackTime < attackCooldown) return;
@@ -158,6 +159,7 @@ void Enemy::update(const GameObject* player) {
             isInHitState = false;
             isPermanentlyDisabled = true;
             setAnimation(ENEMY_DEATH);
+            currentFrame = 0; // Reset frame to start of death animation
             velocityX = 0.0f;
         }
     }
@@ -166,19 +168,18 @@ void Enemy::update(const GameObject* player) {
     if (isAttacking) {
         if (currentTime - attackStartTime >= attackDuration) {
             isAttacking = false;
-            setAnimation(ENEMY_IDLE);
+            if (!isInHitState && !isPermanentlyDisabled) {
+                setAnimation(ENEMY_IDLE);
+            }
         }
     }
 
     // Update animation state based on movement and conditions
     if (!isInHitState && !isAttacking && currentState != ENEMY_DEATH) {
         if (isPermanentlyDisabled) {
-            if (currentState != ENEMY_IDLE) {
-                setAnimation(ENEMY_IDLE);
-            }
+            setAnimation(ENEMY_DEATH);
         } else {
             bool isMoving = std::fabs(velocityX) > 0.1f;
-
             if (isMoving && currentState != ENEMY_RUNNING) {
                 setAnimation(ENEMY_RUNNING);
             } else if (!isMoving && !isAttacking && currentState != ENEMY_IDLE) {
@@ -198,11 +199,18 @@ void Enemy::update(const GameObject* player) {
         if (elapsedTime >= static_cast<Uint32>(currentAnimSpeed)) {
             lastFrameTime = currentTime;
 
-            if (currentState == ENEMY_DEATH || currentState == ENEMY_TAKE_HIT) {
+            if (currentState == ENEMY_DEATH) {
+                // For death animation, only advance frames until the last frame
+                if (currentFrame < currentTotalFrames - 1) {
+                    currentFrame++;
+                }
+            } else if (currentState == ENEMY_TAKE_HIT) {
+                // For take hit animation, also only advance until last frame
                 if (currentFrame < currentTotalFrames - 1) {
                     currentFrame++;
                 }
             } else {
+                // For other animations, loop normally
                 currentFrame = (currentFrame + 1) % currentTotalFrames;
             }
         }
@@ -233,7 +241,7 @@ SDL_Rect Enemy::getAttackHitbox() const {
 
     SDL_Rect attackBox;
     attackBox.w = collider.w / 3.5; // Match player's attack width
-    attackBox.h = collider.h;
+    attackBox.h = collider.h/2;
 
     if (facingRight) {
         attackBox.x = collider.x + 50; // Match player's 50 pixel forward attack
@@ -321,7 +329,7 @@ void Enemy::takeHit() {
 }
 
 void Enemy::aiMoveTowards(int targetX) {
-    float moveSpeed = 2.0f;
+    float moveSpeed = 3.0f;
     float distanceToTarget = targetX - xpos;
     float minMoveThreshold = 5.0f;
 

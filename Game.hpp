@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL.h>
 #include <SDL_mixer.h>
+#include <vector>
 #include "AudioManager.h"
 
 // Forward declarations
@@ -37,11 +38,14 @@ public:
     // Renderer dung chung
     static SDL_Renderer* renderer;
 
+    void spawnRandomEnemy();  // Add this line
+
 private:
     SDL_Window* window;
     bool isRunning;
     GameObject* player;
-    Enemy* enemy;
+    std::vector<Enemy*> enemies;  // Replace single enemy with vector
+    bool firstWaveDefeated;       // Track if first enemy is defeated
     TileMap* tileMap;
     SDL_Texture* backgroundTexture; // Furthest background (BG1)
     SDL_Texture* foregroundTexture; // Closer background (BG2)

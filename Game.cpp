@@ -9,6 +9,7 @@
 #include <iostream>
 #include <algorithm> // For std::min/max
 #include <cmath>
+#include <random>
 
 using namespace std;
 
@@ -16,7 +17,7 @@ using namespace std;
 SDL_Renderer* Game::renderer = nullptr;
 
 Game::Game() : window(nullptr), isRunning(false), player(nullptr),
-               enemy(nullptr), // Initialize single enemy pointer
+               firstWaveDefeated(false),
                tileMap(nullptr),
                backgroundTexture(nullptr),
                foregroundTexture(nullptr),
@@ -60,13 +61,8 @@ void Game::init(const char* title, int xPos, int yPos, int width, int height) {
             return;
         }
 
-        // Initialize enemy with attack texture
-        enemy = new Enemy("assets/Idle.png", "assets/Run.png", "assets/Attack.png", "assets/Take Hit.png", "assets/Death.png", 250, 50, 1.0f);
-        if (enemy == nullptr) {
-            std::cerr << "Failed to create enemy object!" << std::endl;
-            isRunning = false;
-            return;
-        }
+        // Initialize first enemy
+        spawnRandomEnemy();
 
         // Initialize tilemap
         tileMap = new TileMap();
@@ -144,121 +140,101 @@ void Game::update() {
         player->update();
     }
 
-    // Update enemy
-    if (enemy && player) {
-        // Check if enemy just got defeated
-        if (enemy->isPermanentlyDisabled) {
-            // Change to victory music if not already playing
-            static bool victoryMusicPlayed = false;
-            if (!victoryMusicPlayed) {
-                AudioManager::getInstance().playMusic("audio/medieval-adventure-270566.mp3");
-                AudioManager::getInstance().setMusicVolume(64); // Keep the same volume
-                victoryMusicPlayed = true;
-            }
+    // Check if all enemies are defeated
+    bool allEnemiesDefeated = true;
+    for (Enemy* enemy : enemies) {
+        if (enemy && !enemy->isPermanentlyDisabled) {
+            allEnemiesDefeated = false;
+            break;
         }
+    }
 
-        enemy->prevX = enemy->getX();
-        enemy->prevY = enemy->getY();
+    // Spawn new enemies if all are defeated
+    if (allEnemiesDefeated) {
+        // Spawn 2 enemies at different positions
+        spawnRandomEnemy();
+        spawnRandomEnemy(); // Calling twice ensures different random positions
 
-        // Check distance to player
-        float dx = player->getX() - enemy->getX();
-        float dy = player->getY() - enemy->getY();
-        float distance = std::sqrt(dx * dx + dy * dy);
+        // Change music for new wave
+        AudioManager::getInstance().playMusic("audio/medieval-adventure-270566.mp3");
+        AudioManager::getInstance().setMusicVolume(64);
+    }
 
-        // Make the enemy move toward the player or attack based on distance
-        if (!enemy->isPermanentlyDisabled && !enemy->isInHitState) {
-            if (distance > 65.0f) { // Match the new shorter attack range
-                enemy->aiMoveTowards(player->getX());
-            } else { // If within attack range, stop and try to attack
-                enemy->velocityX = 0.0f;
-                enemy->tryAttack(player);
-                if (enemy->getState() != ENEMY_ATTACKING) {
-                    enemy->setState(ENEMY_IDLE);
-                }
-            }
-        }
+    // Update all enemies
+    for (Enemy* enemy : enemies) {
+        if (enemy && player) {
+            enemy->prevX = enemy->getX();
+            enemy->prevY = enemy->getY();
 
-        Physics::applyGravity(enemy);
-        Physics::applyFriction(enemy);
+            // Check distance to player
+            float dx = player->getX() - enemy->getX();
+            float dy = player->getY() - enemy->getY();
+            float distance = std::sqrt(dx * dx + dy * dy);
 
-        // Update enemy with player reference for attack behavior
-        enemy->update(player);
-
-        // Handle collisions between enemy attacks and player
-        if (enemy->getState() == ENEMY_ATTACKING) {
-            SDL_Rect enemyAttackBox = enemy->getAttackHitbox();
-            SDL_Rect playerCollider = player->getCollider();
-
-            // Adjust collision boxes for camera if needed
-            if (!lockCamera) {
-                enemyAttackBox.x -= cameraX;
-                enemyAttackBox.y -= cameraY;
-                playerCollider.x -= cameraX;
-                playerCollider.y -= cameraY;
-            }
-
-            // Check if enemy's attack hits player
-            if (SDL_HasIntersection(&enemyAttackBox, &playerCollider)) {
-                if (player->isParrying) {
-                    // Successful parry - move player back
-                    float parryKnockback = 10.0f;
-                    player->velocityX = player->facingRight ? -parryKnockback : parryKnockback;
-                    std::cout << "Attack parried!" << std::endl;
-                    AudioManager::getInstance().playRandomParrySound();
+            // Make the enemy move toward the player or attack based on distance
+            if (!enemy->isPermanentlyDisabled && !enemy->isInHitState) {
+                if (distance > 55.0f) { // Reduced from 80.0f to 55.0f to get closer
+                    enemy->aiMoveTowards(player->getX());
                 } else {
-                    std::cout << "Player hit by enemy!" << std::endl;
+                    enemy->velocityX = 0.0f;
+                    enemy->tryAttack(player);
+                    if (enemy->getState() != ENEMY_ATTACKING) {
+                        enemy->setState(ENEMY_IDLE);
+                    }
+                }
+            }
+
+            Physics::applyGravity(enemy);
+            Physics::applyFriction(enemy);
+            enemy->update(player);
+
+            // Handle enemy attacks hitting player
+            if (enemy->getState() == ENEMY_ATTACKING) {
+                SDL_Rect enemyAttackBox = enemy->getAttackHitbox();
+                SDL_Rect playerCollider = player->getCollider();
+
+                if (SDL_HasIntersection(&enemyAttackBox, &playerCollider)) {
+                    if (player->isParrying) {
+                        float parryKnockback = 10.0f;
+                        player->velocityX = player->facingRight ? -parryKnockback : parryKnockback;
+                        AudioManager::getInstance().playRandomParrySound();
+                    } else {
+                        AudioManager::getInstance().playRandomHitSound();
+                        player->takeHit();
+                    }
+                }
+            }
+
+            // Handle player attacks hitting enemy
+            if (player->isAttacking) {
+                SDL_Rect playerAttackBox = player->getAttackHitbox();
+                SDL_Rect enemyCollider = enemy->getCollider();
+
+                if (SDL_HasIntersection(&playerAttackBox, &enemyCollider) &&
+                    !enemy->isTakingHit() && !enemy->isPermanentlyDisabled) {
                     AudioManager::getInstance().playRandomHitSound();
-                    player->takeHit();
+                    enemy->takeHit();
                 }
             }
         }
     }
 
-    // Handle player's attack hitting enemy
-    if (player && enemy && player->isAttacking) {
+    // Play miss sound for player attacks that don't hit anything
+    if (player && player->isAttacking && player->getCurrentFrame() == 0) {
+        bool hitSomething = false;
         SDL_Rect playerAttackBox = player->getAttackHitbox();
-        SDL_Rect enemyCollider = enemy->getCollider();
-
-        bool didHit = false;
-        // Check if enemy's attack hits player
-        if (SDL_HasIntersection(&playerAttackBox, &enemyCollider) &&
-            !enemy->isTakingHit() && !enemy->isPermanentlyDisabled) {
-            std::cout << "Enemy hit by player!" << std::endl;
-            AudioManager::getInstance().playRandomHitSound();
-            enemy->takeHit();
-            didHit = true;
-        }
-
-        // Play miss sound if we're on the first frame of attack and didn't hit
-        if (!didHit && player->getCurrentFrame() == 0) {
-            AudioManager::getInstance().playMissSound();
-        }
-    }
-
-    // Handle enemy attack sound
-    if (enemy && enemy->isAttacking) {
-        SDL_Rect enemyAttackBox = enemy->getAttackHitbox();
-        SDL_Rect playerCollider = player->getCollider();
-
-        bool didHit = false;
-        if (SDL_HasIntersection(&enemyAttackBox, &playerCollider)) {
-            if (player->isParrying) {
-                // Successful parry - move player back
-                float parryKnockback = 10.0f;
-                player->velocityX = player->facingRight ? -parryKnockback : parryKnockback;
-                std::cout << "Attack parried!" << std::endl;
-                AudioManager::getInstance().playRandomParrySound();
-                didHit = true;
-            } else {
-                std::cout << "Player hit by enemy!" << std::endl;
-                AudioManager::getInstance().playRandomHitSound();
-                player->takeHit();
-                didHit = true;
+        
+        for (Enemy* enemy : enemies) {
+            if (enemy && !enemy->isPermanentlyDisabled) {
+                SDL_Rect enemyCollider = enemy->getCollider();
+                if (SDL_HasIntersection(&playerAttackBox, &enemyCollider)) {
+                    hitSomething = true;
+                    break;
+                }
             }
         }
-
-        // Play miss sound if we're on the first frame of attack and didn't hit
-        if (!didHit && enemy->getCurrentFrame() == 0) {
+        
+        if (!hitSomething) {
             AudioManager::getInstance().playMissSound();
         }
     }
@@ -324,10 +300,13 @@ void Game::render() {
         player->renderSprite(renderX, renderY);
     }
 
-    if (enemy && enemy->getX() >= 0 && enemy->getY() >= 0) {
-        int renderX = enemy->getX() - cameraX;
-        int renderY = enemy->getY() - cameraY;
-        enemy->render(renderX, renderY);
+    // Render all enemies
+    for (Enemy* enemy : enemies) {
+        if (enemy && enemy->getX() >= 0 && enemy->getY() >= 0) {
+            int renderX = enemy->getX() - cameraX;
+            int renderY = enemy->getY() - cameraY;
+            enemy->render(renderX, renderY);
+        }
     }
 
     // 6. Render hitboxes on top of everything
@@ -349,8 +328,10 @@ void Game::clean() {
     TextureManager::cleanUp();
     delete player;
     player = nullptr;
-    delete enemy;
-    enemy = nullptr;
+    for (Enemy* enemy : enemies) {
+        delete enemy;
+    }
+    enemies.clear();
     delete tileMap;
     tileMap = nullptr;
     SDL_DestroyRenderer(renderer);
@@ -362,4 +343,19 @@ void Game::clean() {
 
 bool Game::running() {
     return isRunning;
+}
+
+void Game::spawnRandomEnemy() {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(100, SCREEN_WIDTH - 100); // Use screen width for spawning
+    
+    // Random x position anywhere on screen
+    int spawnX = dist(gen);
+    
+    Enemy* newEnemy = new Enemy("assets/Idle.png", "assets/Run.png", "assets/Attack.png",
+                               "assets/Take Hit.png", "assets/Death.png", spawnX, 50, 1.0f);
+    if (newEnemy) {
+        enemies.push_back(newEnemy);
+    }
 }

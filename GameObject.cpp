@@ -11,9 +11,9 @@ GameObject::GameObject(int x, int y, int width, int height)
     : currentFrame(0),
       xpos(x),
       ypos(y),
-      prevX(x), 
+      prevX(x),
       prevY(y),
-      velocityX(0.0f), 
+      velocityX(0.0f),
       velocityY(0.0f),
       onGround(false),
       facingRight(true),
@@ -36,7 +36,9 @@ GameObject::GameObject(int x, int y, int width, int height)
       animSpeed(100),
       isMoving(false),
       animationTransitionThreshold(0.01f),
-      parryFrameIndex(0)
+      parryFrameIndex(0),
+      lastAttackTime(0),
+      lastParryTime(0)
 {
     // Load textures
     idleTexture = TextureManager::loadTexture("assets/Idle.png");
@@ -289,13 +291,13 @@ SDL_Rect GameObject::getAttackHitbox() const {
 
     SDL_Rect attackBox;
     attackBox.w = collider.w / 3.5;
-    attackBox.h = collider.h;
+    attackBox.h = collider.h / 2;
     attackBox.y = collider.y;
 
     if (facingRight) {
-        attackBox.x = collider.x + collider.w; // Position attack box at the right edge of collider
+        attackBox.x = collider.x + 50; // Position attack box at the right edge of collider
     } else {
-        attackBox.x = collider.x - attackBox.w; // Position attack box at the left edge of collider
+        attackBox.x = collider.x; // Position attack box at the left edge of collider
     }
 
     return attackBox;
@@ -320,7 +322,7 @@ void GameObject::takeHit() {
         currentState = TAKE_HIT;
         currentTexture = takeHitTexture;
         currentFrame = 0;
-        
+
         // Start flash effect
         isFlashing = true;
         flashStartTime = SDL_GetTicks();
@@ -335,28 +337,39 @@ void GameObject::takeHit() {
 }
 
 void GameObject::parry() {
+    Uint32 currentTime = SDL_GetTicks();
+    if (currentTime - lastParryTime < PARRY_COOLDOWN) {
+        return; // Still in cooldown
+    }
+
     if (!isAttacking && !isParrying && !inHitState && !permanentlyDisabled) {
         isParrying = true;
-        parryStartTime = SDL_GetTicks();
+        parryStartTime = currentTime;
+        lastParryTime = currentTime;
         parryDuration = 200; // Shorter parry window for more precise timing
         currentTexture = attackTexture;
         currentState = PARRYING;
-        
+
         // Use a specific frame for parry animation
         currentFrame = 2; // Using frame 2 of attack animation for parry pose
         srcRect.x = currentFrame * frameWidth;
-        
+
         // Reset any existing velocity when parrying
         velocityX = 0.0f;
     }
 }
 
 void GameObject::attack() {
+    Uint32 currentTime = SDL_GetTicks();
+    if (currentTime - lastAttackTime < ATTACK_COOLDOWN) {
+        return; // Still in cooldown
+    }
+
     // Allow new attack if not already attacking, not parrying, not in hit state and not disabled
-    // Removed additional isAttacking check since we want to allow repeated attacks
     if (!isParrying && !inHitState && !permanentlyDisabled) {
         isAttacking = true;
-        attackStartTime = SDL_GetTicks();
+        attackStartTime = currentTime;
+        lastAttackTime = currentTime;
         currentTexture = attackTexture;
         currentFrame = 0;
         animSpeed = 50;  // Make attack animation slightly faster

@@ -57,6 +57,13 @@ public:
     bool isParrying;
     Uint32 parryStartTime;
     Uint32 parryDuration;
+    
+    // Add cooldown properties
+    Uint32 lastAttackTime;
+    Uint32 lastParryTime;
+    static const Uint32 ATTACK_COOLDOWN = 500; // 500ms cooldown for attack
+    static const Uint32 PARRY_COOLDOWN = 250;  // 250ms cooldown for parry
+    
     bool inHitState;
     bool permanentlyDisabled;
     Uint32 takeHitStartTime;
