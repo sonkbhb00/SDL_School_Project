@@ -8,8 +8,13 @@
 #include <ctime>   // For std::time
 
 GameObject::GameObject(int x, int y, int width, int height)
-    : prevX(x), prevY(y),
-      velocityX(0.0f), velocityY(0.0f),
+    : currentFrame(0),
+      xpos(x),
+      ypos(y),
+      prevX(x), 
+      prevY(y),
+      velocityX(0.0f), 
+      velocityY(0.0f),
       onGround(false),
       facingRight(true),
       currentState(IDLE),
@@ -27,9 +32,6 @@ GameObject::GameObject(int x, int y, int width, int height)
       flashStartTime(0),
       flashDuration(150),
       flashAlpha(255),
-      xpos(x),
-      ypos(y),
-      currentFrame(0),
       lastFrameTime(SDL_GetTicks()),
       animSpeed(100),
       isMoving(false),

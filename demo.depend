@@ -10,8 +10,9 @@
 	<SDL.h>
 	"Game.hpp"
 
-1744556750 c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.hpp
+1744557919 c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.hpp
 	<SDL.h>
+	<SDL_mixer.h>
 	"AudioManager.h"
 
 1744262773 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\combat.cpp
@@ -23,7 +24,7 @@
 
 1741667082 c:\users\bui son\onedrive\desktop\demo_sdl\demo\combat.hpp
 
-1744554641 c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.h
+1744558339 c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.h
 	<SDL.h>
 	"Game.hpp"
 
@@ -38,7 +39,7 @@
 	<cstring>
 	<cmath>
 
-1744519258 c:\users\bui son\onedrive\desktop\demo_sdl\demo\enemy.h
+1744558339 c:\users\bui son\onedrive\desktop\demo_sdl\demo\enemy.h
 	<SDL.h>
 	"Game.hpp"
 	"TextureManager.h"
@@ -78,7 +79,7 @@
 	<SDL.h>
 	"Game.hpp"
 
-1744554934 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.cpp
+1744558339 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.cpp
 	"GameObject.h"
 	"Game.hpp"
 	"Physics.hpp"
@@ -88,7 +89,7 @@
 	<cstdlib>
 	<ctime>
 
-1744555134 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.cpp
+1744558848 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.cpp
 	"Game.hpp"
 	"GameObject.h"
 	"TextureManager.h"
@@ -101,9 +102,15 @@
 	<algorithm>
 	<cmath>
 
-1744556716 c:\users\bui son\onedrive\desktop\demo_sdl\demo\audiomanager.h
+1744558339 c:\users\bui son\onedrive\desktop\demo_sdl\demo\audiomanager.h
 	<SDL.h>
 	<SDL_mixer.h>
 	<string>
 	<iostream>
+	<vector>
+	<random>
+
+1744558339 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\audiomanager.cpp
+	"AudioManager.h"
+	<random>
 

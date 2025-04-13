@@ -69,6 +69,10 @@ public:
     SDL_Texture* takeHitTexture;
     SDL_Texture* deathTexture;
 
+    // Animation properties
+    int currentFrame;
+    int getCurrentFrame() const { return currentFrame; }
+
 private:
     int xpos, ypos;
     SDL_Rect srcRect;
@@ -82,7 +86,6 @@ private:
     int totalFrames;
     int frameWidth;
     int frameHeight;
-    int currentFrame;
     Uint32 lastFrameTime;
     int animSpeed;
 

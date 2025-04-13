@@ -42,6 +42,7 @@ public:
     void setState(EnemyAnimationState newState) { setAnimation(newState); }
     EnemyAnimationState getState() const { return currentState; }
     SDL_Rect getAttackHitbox() const;
+    int getCurrentFrame() const { return currentFrame; }
 
     // Physics properties
     int prevX, prevY;

@@ -146,6 +146,17 @@ void Game::update() {
 
     // Update enemy
     if (enemy && player) {
+        // Check if enemy just got defeated
+        if (enemy->isPermanentlyDisabled) {
+            // Change to victory music if not already playing
+            static bool victoryMusicPlayed = false;
+            if (!victoryMusicPlayed) {
+                AudioManager::getInstance().playMusic("audio/medieval-adventure-270566.mp3");
+                AudioManager::getInstance().setMusicVolume(64); // Keep the same volume
+                victoryMusicPlayed = true;
+            }
+        }
+
         enemy->prevX = enemy->getX();
         enemy->prevY = enemy->getY();
 
@@ -193,8 +204,10 @@ void Game::update() {
                     float parryKnockback = 10.0f;
                     player->velocityX = player->facingRight ? -parryKnockback : parryKnockback;
                     std::cout << "Attack parried!" << std::endl;
+                    AudioManager::getInstance().playRandomParrySound();
                 } else {
                     std::cout << "Player hit by enemy!" << std::endl;
+                    AudioManager::getInstance().playRandomHitSound();
                     player->takeHit();
                 }
             }
@@ -206,11 +219,47 @@ void Game::update() {
         SDL_Rect playerAttackBox = player->getAttackHitbox();
         SDL_Rect enemyCollider = enemy->getCollider();
 
+        bool didHit = false;
         // Check if enemy's attack hits player
         if (SDL_HasIntersection(&playerAttackBox, &enemyCollider) &&
             !enemy->isTakingHit() && !enemy->isPermanentlyDisabled) {
             std::cout << "Enemy hit by player!" << std::endl;
+            AudioManager::getInstance().playRandomHitSound();
             enemy->takeHit();
+            didHit = true;
+        }
+
+        // Play miss sound if we're on the first frame of attack and didn't hit
+        if (!didHit && player->getCurrentFrame() == 0) {
+            AudioManager::getInstance().playMissSound();
+        }
+    }
+
+    // Handle enemy attack sound
+    if (enemy && enemy->isAttacking) {
+        SDL_Rect enemyAttackBox = enemy->getAttackHitbox();
+        SDL_Rect playerCollider = player->getCollider();
+
+        bool didHit = false;
+        if (SDL_HasIntersection(&enemyAttackBox, &playerCollider)) {
+            if (player->isParrying) {
+                // Successful parry - move player back
+                float parryKnockback = 10.0f;
+                player->velocityX = player->facingRight ? -parryKnockback : parryKnockback;
+                std::cout << "Attack parried!" << std::endl;
+                AudioManager::getInstance().playRandomParrySound();
+                didHit = true;
+            } else {
+                std::cout << "Player hit by enemy!" << std::endl;
+                AudioManager::getInstance().playRandomHitSound();
+                player->takeHit();
+                didHit = true;
+            }
+        }
+
+        // Play miss sound if we're on the first frame of attack and didn't hit
+        if (!didHit && enemy->getCurrentFrame() == 0) {
+            AudioManager::getInstance().playMissSound();
         }
     }
 }
