@@ -11,7 +11,7 @@
 bool Enemy::loadEnemyAnimationData(const char* path, SDL_Texture*& texture, int& totalFrames, int& frameWidth, int& frameHeight) {
     texture = TextureManager::loadTexture(path);
     if (!texture) return false;
-    
+
     int w, h;
     SDL_QueryTexture(texture, NULL, NULL, &w, &h);
     frameHeight = h;
@@ -31,25 +31,25 @@ bool Enemy::loadEnemyAnimationData(const char* path, SDL_Texture*& texture, int&
 Enemy::Enemy(const char* idleTexturePath, const char* runTexturePath, const char* attackTexturePath,
              const char* takeHitTexturePath, const char* deathTexturePath, int x, int y, float scale)
     : prevX(x), prevY(y),
-      velocityX(0.0f), velocityY(0.0f), 
+      velocityX(0.0f), velocityY(0.0f),
       onGround(false),
       isInHitState(false),
       isPermanentlyDisabled(false),
       currentState(ENEMY_IDLE),
       currentFrame(0),
-      xpos(x), ypos(y), 
+      xpos(x), ypos(y),
       scale(scale),
       colliderOffsetX(0), colliderOffsetY(0),
       facingRight(true),
-      idleTexture(nullptr), runTexture(nullptr), attackTexture(nullptr), 
+      idleTexture(nullptr), runTexture(nullptr), attackTexture(nullptr),
       takeHitTexture(nullptr), deathTexture(nullptr), currentTexture(nullptr),
       isAttacking(false),
       attackStartTime(0),
       attackDuration(400),
-      attackRange(100.0f),
+      attackRange(150.0f), // Updated to account for 50px forward attack + hitbox width
       lastAttackTime(0),
       attackCooldown(2000),
-      idleTotalFrames(0), runTotalFrames(0), attackTotalFrames(0), 
+      idleTotalFrames(0), runTotalFrames(0), attackTotalFrames(0),
       takeHitTotalFrames(0), deathTotalFrames(0), currentTotalFrames(0),
       idleFrameWidth(0), idleFrameHeight(0), runFrameWidth(0), runFrameHeight(0),
       attackFrameWidth(0), attackFrameHeight(0),
@@ -97,7 +97,7 @@ Enemy::Enemy(const char* idleTexturePath, const char* runTexturePath, const char
     // Set up rectangles
     destRect = { x, y, static_cast<int>(idleFrameWidth * scale), static_cast<int>(idleFrameHeight * scale) };
     srcRect = { 0, 0, idleFrameWidth, idleFrameHeight };
-    
+
     // Set up collider as half the size of destRect
     collider.w = destRect.w / 2;
     collider.h = destRect.h / 2;
@@ -178,7 +178,7 @@ void Enemy::update(const GameObject* player) {
             }
         } else {
             bool isMoving = std::fabs(velocityX) > 0.1f;
-            
+
             if (isMoving && currentState != ENEMY_RUNNING) {
                 setAnimation(ENEMY_RUNNING);
             } else if (!isMoving && !isAttacking && currentState != ENEMY_IDLE) {
@@ -197,7 +197,7 @@ void Enemy::update(const GameObject* player) {
         Uint32 elapsedTime = currentTime - lastFrameTime;
         if (elapsedTime >= static_cast<Uint32>(currentAnimSpeed)) {
             lastFrameTime = currentTime;
-            
+
             if (currentState == ENEMY_DEATH || currentState == ENEMY_TAKE_HIT) {
                 if (currentFrame < currentTotalFrames - 1) {
                     currentFrame++;
@@ -232,26 +232,26 @@ SDL_Rect Enemy::getAttackHitbox() const {
     }
 
     SDL_Rect attackBox;
-    attackBox.w = collider.w / 2;
+    attackBox.w = collider.w / 3.5; // Match player's attack width
     attackBox.h = collider.h;
-    
+
     if (facingRight) {
-        attackBox.x = collider.x + collider.w;
+        attackBox.x = collider.x + 50; // Match player's 50 pixel forward attack
     } else {
-        attackBox.x = collider.x - attackBox.w;
+        attackBox.x = collider.x; // Match player's 50 pixel forward attack
     }
-    
+
     attackBox.y = collider.y;
     return attackBox;
 }
 
 void Enemy::setAnimation(EnemyAnimationState newState) {
     if (currentState == newState) return;
-    
+
     currentState = newState;
     currentFrame = 0;
     lastFrameTime = SDL_GetTicks();
-    
+
     switch(newState) {
         case ENEMY_IDLE:
             currentTexture = idleTexture;
@@ -311,7 +311,7 @@ void Enemy::takeHit() {
         flashAlpha = 255;
 
         setAnimation(ENEMY_TAKE_HIT);
-        
+
         // Add knockback effect based on the direction the enemy is facing
         float knockbackForce = 5.0f;
         velocityX = facingRight ? -knockbackForce : knockbackForce;
@@ -324,11 +324,11 @@ void Enemy::aiMoveTowards(int targetX) {
     float moveSpeed = 2.0f;
     float distanceToTarget = targetX - xpos;
     float minMoveThreshold = 5.0f;
-    
+
     if (std::abs(distanceToTarget) > minMoveThreshold) {
         velocityX = (distanceToTarget > 0) ? moveSpeed : -moveSpeed;
         facingRight = velocityX > 0;
-        
+
         if (currentState != ENEMY_RUNNING && !isInHitState && !isPermanentlyDisabled) {
             setAnimation(ENEMY_RUNNING);
         }
