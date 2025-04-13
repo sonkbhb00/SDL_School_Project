@@ -38,7 +38,8 @@ GameObject::GameObject(int x, int y, int width, int height)
       animationTransitionThreshold(0.01f),
       parryFrameIndex(0),
       lastAttackTime(0),
-      lastParryTime(0)
+      lastParryTime(0),
+      game(nullptr)  // Initialize game pointer
 {
     // Load textures
     idleTexture = TextureManager::loadTexture("assets/Idle.png");
@@ -320,7 +321,7 @@ void GameObject::takeHit() {
     if (!inHitState && !permanentlyDisabled) {
         inHitState = true;
         takeHitStartTime = SDL_GetTicks();
-        takeHitDuration = 300; // Match the duration in constructor
+        takeHitDuration = 300;
         currentState = TAKE_HIT;
         currentTexture = takeHitTexture;
         currentFrame = 0;
@@ -329,6 +330,11 @@ void GameObject::takeHit() {
         isFlashing = true;
         flashStartTime = SDL_GetTicks();
         flashAlpha = 255;
+
+        // Trigger fade effect using game reference
+        if (game) {
+            game->startFadeEffect();
+        }
 
         // Add knockback effect
         float knockbackForce = 5.0f;

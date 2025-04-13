@@ -15,26 +15,39 @@ using namespace std;
 
 // Static member definitions
 SDL_Renderer* Game::renderer = nullptr;
+int Game::SCREEN_WIDTH = 720;  // Initial default values
+int Game::SCREEN_HEIGHT = 576;
 
-Game::Game() : window(nullptr), isRunning(false), player(nullptr),
-               firstWaveDefeated(false),
-               defeatedEnemyCount(0),
-               secondMusicStarted(false),
-               tileMap(nullptr),
-               backgroundTexture(nullptr),
-               foregroundTexture(nullptr),
-               closestTexture(nullptr),
-               cameraX(0), cameraY(0),
-               lockCamera(true),
-               font(nullptr),
-               showParryText(false),
-               parryTextStartTime(0),
-               parryTextSize(48),
-               parryTextColor{255, 255, 255, 255},
-               successfulParryCount(0),
-               timerStarted(false),  // Don't start timer immediately
-               timerStartTime(0),
-               hasStartedTimer(false)  // Initialize new flag
+Game::Game() : 
+    window(nullptr),
+    isRunning(false),
+    player(nullptr),
+    tileMap(nullptr),
+    enemies(),
+    firstWaveDefeated(false),
+    defeatedEnemyCount(0),
+    secondMusicStarted(false),
+    backgroundTexture(nullptr),
+    foregroundTexture(nullptr),
+    closestTexture(nullptr),
+    cameraX(0),
+    cameraY(0),
+    lockCamera(true),
+    font(nullptr),
+    parryTextColor{255, 255, 255, 255},
+    showParryText(false),
+    parryTextStartTime(0),
+    parryTextSize(48),
+    successfulParryCount(0),
+    timerStarted(false),
+    timerStartTime(0),
+    hasStartedTimer(false),
+    isFading(false),
+    fadeStartTime(0),
+    fadeAlpha(0),
+    showDeathText(false),
+    deathTextStartTime(0),
+    deathTextAlpha(0)
 { }
 
 Game::~Game() {
@@ -42,18 +55,30 @@ Game::~Game() {
 
 void Game::init(const char* title, int xPos, int yPos, int width, int height) {
     if (SDL_Init(SDL_INIT_EVERYTHING) == 0) {
-        // Initialize SDL_ttf
-        if (TTF_Init() < 0) {
-            std::cout << "SDL_ttf could not initialize! SDL_ttf Error: " << TTF_GetError() << std::endl;
+        // Create window normally (not fullscreen)
+        window = SDL_CreateWindow(title, xPos, yPos, width, height, SDL_WINDOW_SHOWN);
+        if (!window) {
+            std::cout << "Failed to create window! SDL Error: " << SDL_GetError() << std::endl;
             isRunning = false;
             return;
         }
 
-        window = SDL_CreateWindow(title, xPos, yPos, width, height, SDL_WINDOW_SHOWN);
-        renderer = SDL_CreateRenderer(window, -1, 0); // Initialize static renderer
-        if (!renderer) { isRunning = false; return; }
+        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+        if (!renderer) { 
+            std::cout << "Failed to create renderer! SDL Error: " << SDL_GetError() << std::endl;
+            isRunning = false; 
+            return; 
+        }
+
         isRunning = true;
         IMG_Init(IMG_INIT_PNG);
+
+        // Initialize SDL_ttf
+        if (TTF_Init() == -1) {
+            std::cout << "SDL_ttf could not initialize! SDL_ttf Error: " << TTF_GetError() << std::endl;
+            isRunning = false;
+            return;
+        }
 
         // Load font
         font = TTF_OpenFont("font/Jacquard_12/Jacquard12-Regular.ttf", 36);
@@ -86,6 +111,7 @@ void Game::init(const char* title, int xPos, int yPos, int width, int height) {
             isRunning = false;
             return;
         }
+        player->setGameRef(this);  // Set reference to game instance
 
         // Initialize first enemy
         spawnRandomEnemy();
@@ -139,6 +165,44 @@ void Game::handleEvents() {
 void Game::update() {
     // Add AudioManager update at the start of the update loop
     AudioManager::getInstance().update();
+
+    // Update fade effect
+    if (isFading) {
+        Uint32 currentTime = SDL_GetTicks();
+        Uint32 elapsedTime = currentTime - fadeStartTime;
+
+        if (elapsedTime >= FADE_DURATION) {
+            fadeAlpha = 255;  // Keep screen black
+        } else {
+            // Gradually increase alpha from 0 to 255 over FADE_DURATION
+            fadeAlpha = static_cast<Uint8>((elapsedTime * 255) / FADE_DURATION);
+        }
+    }
+
+    // Check if the player is dead and ensure the screen stays black
+    if (player && player->permanentlyDisabled) {
+        isFading = true;
+        fadeAlpha = 255;  // Keep the screen black
+    }
+
+    // Check if the player is dead and start death effects
+    if (player && player->permanentlyDisabled && !showDeathText) {
+        showDeathText = true;
+        deathTextStartTime = SDL_GetTicks();
+        deathTextAlpha = 0;
+        // Play death sound effect
+        AudioManager::getInstance().playSoundEffect("audio/Dark Souls - You Died (Sound Effect).mp3");
+    }
+
+    // Update death text alpha
+    if (showDeathText) {
+        Uint32 elapsedTime = SDL_GetTicks() - deathTextStartTime;
+        if (elapsedTime < DEATH_TEXT_DURATION) {
+            deathTextAlpha = static_cast<Uint8>((elapsedTime * 255) / DEATH_TEXT_DURATION);
+        } else {
+            deathTextAlpha = 255;  // Keep fully visible after fade in
+        }
+    }
 
     // Update player
     if (player) {
@@ -231,12 +295,12 @@ void Game::update() {
                         float parryKnockback = 10.0f;
                         player->velocityX = player->facingRight ? -parryKnockback : parryKnockback;
                         AudioManager::getInstance().playRandomParrySound();
-                        
+
                         // Show parry text with random color when successful
                         showParryText = true;
                         parryTextStartTime = SDL_GetTicks();
                         successfulParryCount++;  // Increment successful parries
-                        
+
                         // Generate random bright color
                         parryTextColor.r = rand() % 128 + 128; // 128-255 for brighter colors
                         parryTextColor.g = rand() % 128 + 128;
@@ -375,67 +439,67 @@ void Game::render() {
     // Render UI elements if font is available
     if (font) {
         SDL_Color textColor = {255, 255, 255, 255}; // White text
-        
+
         // Render enemy defeat counter
         std::string countText = "Enemies Defeated: " + std::to_string(defeatedEnemyCount);
         SDL_Surface* textSurface = TTF_RenderText_Solid(font, countText.c_str(), textColor);
         if (textSurface) {
             SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-            
+
             SDL_Rect textRect;
             textRect.w = textSurface->w;
             textRect.h = textSurface->h;
             textRect.x = (SCREEN_WIDTH - textRect.w) / 2;
             textRect.y = 20;
-            
+
             SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
-            
+
             // Render parry counter
             std::string parryText = "PARRIED: " + std::to_string(successfulParryCount);
             SDL_Surface* parrySurface = TTF_RenderText_Solid(font, parryText.c_str(), textColor);
             if (parrySurface) {
                 SDL_Texture* parryTexture = SDL_CreateTextureFromSurface(renderer, parrySurface);
-                
+
                 SDL_Rect parryCountRect;
                 parryCountRect.w = parrySurface->w;
                 parryCountRect.h = parrySurface->h;
                 parryCountRect.x = (SCREEN_WIDTH - parryCountRect.w) / 2;
                 parryCountRect.y = textRect.y + textRect.h + 10;
-                
+
                 SDL_RenderCopy(renderer, parryTexture, NULL, &parryCountRect);
-                
+
                 // Only render countdown timer if more than 10 enemies defeated
                 if (timerStarted && defeatedEnemyCount >= 10) {
                     Uint32 elapsedTime = SDL_GetTicks() - timerStartTime;
                     Uint32 remainingTime = (elapsedTime >= TIMER_DURATION) ? 0 : TIMER_DURATION - elapsedTime;
-                    
+
                     int minutes = (remainingTime / 1000) / 60;
                     int seconds = (remainingTime / 1000) % 60;
-                    
-                    std::string timerText = std::to_string(minutes) + " : " + 
+
+                    std::string timerText = std::to_string(minutes) + " : " +
                                           (seconds < 10 ? "0" : "") + std::to_string(seconds);
-                    
+
                     SDL_Surface* timerSurface = TTF_RenderText_Solid(font, timerText.c_str(), textColor);
                     if (timerSurface) {
                         SDL_Texture* timerTexture = SDL_CreateTextureFromSurface(renderer, timerSurface);
-                        
+
                         SDL_Rect timerRect;
                         timerRect.w = timerSurface->w;
                         timerRect.h = timerSurface->h;
                         timerRect.x = (SCREEN_WIDTH - timerRect.w) / 2;
                         timerRect.y = parryCountRect.y + parryCountRect.h + 10;
-                        
+
                         SDL_RenderCopy(renderer, timerTexture, NULL, &timerRect);
-                        
+
                         SDL_FreeSurface(timerSurface);
                         SDL_DestroyTexture(timerTexture);
                     }
                 }
-                
+
                 SDL_FreeSurface(parrySurface);
                 SDL_DestroyTexture(parryTexture);
             }
-            
+
             SDL_FreeSurface(textSurface);
             SDL_DestroyTexture(textTexture);
         }
@@ -445,22 +509,22 @@ void Game::render() {
             // Calculate size based on successful parries (start at 48, increase by 12 each time)
             int currentTextSize = parryTextSize + (successfulParryCount - 1) * 12;
             currentTextSize = std::min(currentTextSize, 120); // Cap maximum size at 120
-            
+
             // Create a larger font for the parry text
             TTF_Font* largeFont = TTF_OpenFont("font/Jacquard_12/Jacquard12-Regular.ttf", currentTextSize);
             if (largeFont) {
                 SDL_Surface* parrySurface = TTF_RenderText_Solid(largeFont, "PARRY!?", parryTextColor);
                 if (parrySurface) {
                     SDL_Texture* parryTexture = SDL_CreateTextureFromSurface(renderer, parrySurface);
-                    
+
                     SDL_Rect parryRect;
                     parryRect.w = parrySurface->w;
                     parryRect.h = parrySurface->h;
                     parryRect.x = (SCREEN_WIDTH - parryRect.w) / 2;
                     parryRect.y = (SCREEN_HEIGHT / 2) - 50 - parryRect.h/2; // Center vertically with 50px offset
-                    
+
                     SDL_RenderCopy(renderer, parryTexture, NULL, &parryRect);
-                    
+
                     SDL_FreeSurface(parrySurface);
                     SDL_DestroyTexture(parryTexture);
                 }
@@ -476,7 +540,40 @@ void Game::render() {
         player->renderHitboxes(renderX, renderY);
     }
 
-    // Finally present everything
+    // Render fade overlay on top of everything if active
+    if (isFading) {
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, fadeAlpha);
+        SDL_Rect fadeRect = {-cameraX, -cameraY, MAP_COLS * TILE_SIZE, MAP_ROWS * TILE_SIZE};
+        SDL_RenderFillRect(renderer, &fadeRect);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+    }
+
+    // Render the "YOU DIED" text after fade effect
+    if (showDeathText && font) {
+        TTF_Font* deathFont = TTF_OpenFont("font/Jacquard_12/Jacquard12-Regular.ttf", 72);
+        if (deathFont) {
+            SDL_Color deathTextColor = {255, 0, 0, deathTextAlpha};  // Red color with fading alpha
+            SDL_Surface* deathSurface = TTF_RenderText_Solid(deathFont, "YOU DIED", deathTextColor);
+            if (deathSurface) {
+                SDL_Texture* deathTexture = SDL_CreateTextureFromSurface(renderer, deathSurface);
+                SDL_SetTextureAlphaMod(deathTexture, deathTextAlpha);
+                
+                SDL_Rect deathRect;
+                deathRect.w = deathSurface->w;
+                deathRect.h = deathSurface->h;
+                deathRect.x = (SCREEN_WIDTH - deathRect.w) / 2;
+                deathRect.y = (SCREEN_HEIGHT - deathRect.h) / 2;
+                
+                SDL_RenderCopy(renderer, deathTexture, NULL, &deathRect);
+                
+                SDL_FreeSurface(deathSurface);
+                SDL_DestroyTexture(deathTexture);
+            }
+            TTF_CloseFont(deathFont);
+        }
+    }
+
     SDL_RenderPresent(renderer);
 }
 
@@ -486,7 +583,7 @@ void Game::clean() {
         TTF_CloseFont(font);
         font = nullptr;
     }
-    TTF_Quit();
+    TTF_Quit();  // Make sure TTF is properly quit
 
     // Cleanup audio before other resources
     AudioManager::getInstance().cleanup();

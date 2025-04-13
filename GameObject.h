@@ -40,6 +40,7 @@ public:
     void revertPosition();
     SDL_Rect getCollider() const { return collider; }
     SDL_Rect getAttackHitbox() const;
+    void setGameRef(Game* gameRef) { game = gameRef; }
 
     // Public members needed by Physics
     int prevX, prevY;
@@ -102,6 +103,8 @@ private:
 
     // Parry state
     int parryFrameIndex;  // The randomly selected frame for parry animation
+
+    Game* game;  // Reference to Game instance
 
     friend class Physics;
 };

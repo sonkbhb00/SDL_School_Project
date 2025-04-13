@@ -32,14 +32,19 @@ public:
     static const int MAP_COLS = 64;
     static const int TILE_SIZE = 16;
     
-    // Screen constants
-    static const int SCREEN_WIDTH = 720;
-    static const int SCREEN_HEIGHT = 576;
+    // Screen dimensions - no longer const since they can change
+    static int SCREEN_WIDTH;
+    static int SCREEN_HEIGHT;
 
     // Renderer dung chung
     static SDL_Renderer* renderer;
 
     void spawnRandomEnemy();
+    void startFadeEffect() {
+        isFading = true;
+        fadeStartTime = SDL_GetTicks();
+        fadeAlpha = 0;
+    }
 
 private:
     SDL_Window* window;
@@ -70,4 +75,16 @@ private:
     Uint32 timerStartTime;
     static const Uint32 TIMER_DURATION = 142000; // 2:22 in milliseconds (142 seconds)
     bool hasStartedTimer;  // Track if timer has been started after 10 defeats
+    
+    // Screen fade properties
+    bool isFading;
+    Uint32 fadeStartTime;
+    static const Uint32 FADE_DURATION = 8000; // Increased to 8 seconds for slower fade
+    Uint8 fadeAlpha;  // Alpha value for fade overlay
+
+    // Death text properties
+    bool showDeathText;
+    Uint32 deathTextStartTime;
+    static const Uint32 DEATH_TEXT_DURATION = 3000; // 3 seconds to reach full brightness
+    Uint8 deathTextAlpha;
 };
