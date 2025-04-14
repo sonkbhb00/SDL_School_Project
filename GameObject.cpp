@@ -385,7 +385,11 @@ void GameObject::attack() {
 }
 
 void GameObject::jump() {
-    Physics::applyJump(this);
+    if (onGround && !isAttacking && !isParrying && !inHitState && !permanentlyDisabled) {
+        velocityY = Physics::JUMP_FORCE;
+        onGround = false;
+        currentState = JUMPING;
+    }
 }
 
 void GameObject::revertPosition() {

@@ -19,6 +19,7 @@ public:
 
 private:
     SDL_Texture* tileSetTexture;
+    SDL_Texture* decorsTexture;
     SDL_Rect srcRect, destRect;
     // Use static grid with hardcoded dimensions
     static int grid[64][64];

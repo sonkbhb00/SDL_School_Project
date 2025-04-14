@@ -32,6 +32,8 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="AudioManager.cpp" />
+		<Unit filename="AudioManager.h" />
 		<Unit filename="Combat.cpp" />
 		<Unit filename="Combat.hpp" />
 		<Unit filename="Enemy.cpp" />
@@ -45,6 +47,7 @@
 		<Unit filename="Player.hpp" />
 		<Unit filename="SDL2.dll" />
 		<Unit filename="SDL2_image.dll" />
+		<Unit filename="SDL2_mixer.dll" />
 		<Unit filename="TextureManager.cpp" />
 		<Unit filename="TextureManager.h" />
 		<Unit filename="TileMap.cpp" />

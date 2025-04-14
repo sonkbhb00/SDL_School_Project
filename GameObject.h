@@ -81,6 +81,10 @@ public:
     int currentFrame;
     int getCurrentFrame() const { return currentFrame; }
 
+    bool isDeathAnimationComplete() const {
+        return currentTexture == deathTexture && currentFrame >= 8;
+    }
+
 private:
     int xpos, ypos;
     SDL_Rect srcRect;

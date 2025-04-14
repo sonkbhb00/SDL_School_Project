@@ -115,6 +115,16 @@ void AudioManager::playRandomParrySound() {
     playSoundEffect(parrySoundPaths[randomIndex].c_str());
 }
 
+void AudioManager::pauseAllSounds() {
+    // Pause all currently playing sound channels
+    Mix_Pause(-1);  // -1 pauses all channels
+}
+
+void AudioManager::resumeAllSounds() {
+    // Resume all paused sound channels
+    Mix_Resume(-1);  // -1 resumes all channels
+}
+
 void AudioManager::setNextTrack(const char* path) {
     nextMusicPath = path;
     waitingForNextTrack = true;

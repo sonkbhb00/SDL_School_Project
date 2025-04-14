@@ -14,6 +14,8 @@ public:
     void stopMusic();
     void pauseMusic();
     void resumeMusic();
+    void pauseAllSounds();
+    void resumeAllSounds();
     void setMusicVolume(int volume); // 0-128
     void playSoundEffect(const char* path);
     void playRandomHitSound();

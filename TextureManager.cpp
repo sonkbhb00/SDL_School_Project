@@ -11,14 +11,14 @@ namespace {
     std::vector<SDL_Texture*> loadedTextures;
 }
 
-// Revert to using Game::renderer
 SDL_Texture* TextureManager::loadTexture(const char* filePath) {
     SDL_Surface* tempSurface = IMG_Load(filePath);
     if (!tempSurface) {
         std::cout << "Failed to load image: " << filePath << ". Error: " << IMG_GetError() << std::endl;
         return nullptr;
     }
-    // Use static renderer
+
+    // Create texture from surface
     SDL_Texture* texture = SDL_CreateTextureFromSurface(Game::renderer, tempSurface);
     SDL_FreeSurface(tempSurface);
 
@@ -26,6 +26,7 @@ SDL_Texture* TextureManager::loadTexture(const char* filePath) {
         std::cout << "Failed to create texture from surface. Error: " << SDL_GetError() << std::endl;
         return nullptr;
     }
+
     loadedTextures.push_back(texture);
     return texture;
 }

@@ -18,36 +18,56 @@ SDL_Renderer* Game::renderer = nullptr;
 int Game::SCREEN_WIDTH = 720;  // Initial default values
 int Game::SCREEN_HEIGHT = 576;
 
+// Define mastery animation frame coordinates
+const Game::MasteryFrame Game::MASTERY_FRAMES[30] = {
+    // Row 1
+    {30, 10, 60, 55}, {160, 10, 60, 55}, {290, 10, 60, 55}, {420, 10, 60, 55}, {550, 10, 60, 55},
+    {680, 10, 60, 55}, {810, 10, 60, 55}, {940, 10, 60, 55}, {1070, 10, 60, 55}, {1200, 10, 60, 55},
+    // Row 2 (wider icons)
+    {30, 80, 60, 50}, {160, 80, 60, 50}, {290, 80, 60, 50}, {420, 80, 60, 50}, {550, 80, 60, 50},
+    {670, 75, 80, 60}, {800, 75, 80, 60}, {930, 75, 80, 60}, {1060, 75, 80, 60}, {1190, 75, 80, 60},
+    // Row 3 (consistently wider)
+    {20, 145, 80, 60}, {150, 145, 80, 60}, {280, 145, 80, 60}, {410, 145, 80, 60}, {540, 145, 80, 60},
+    {670, 145, 80, 60}, {800, 145, 80, 60}, {930, 145, 80, 60}, {1060, 145, 80, 60}, {1190, 145, 80, 60}
+};
+
 Game::Game() : 
     window(nullptr),
     isRunning(false),
     player(nullptr),
-    tileMap(nullptr),
     enemies(),
     firstWaveDefeated(false),
     defeatedEnemyCount(0),
-    secondMusicStarted(false),
+    tileMap(nullptr),
     backgroundTexture(nullptr),
     foregroundTexture(nullptr),
     closestTexture(nullptr),
     cameraX(0),
     cameraY(0),
     lockCamera(true),
+    secondMusicStarted(false),
     font(nullptr),
-    parryTextColor{255, 255, 255, 255},
     showParryText(false),
     parryTextStartTime(0),
     parryTextSize(48),
+    parryTextColor{255, 255, 255, 255},
     successfulParryCount(0),
     timerStarted(false),
     timerStartTime(0),
     hasStartedTimer(false),
+    masteryTexture(nullptr),
+    showMasteryAnimation(false),
+    masteryStartTime(0),
+    masteryFrame(0),
     isFading(false),
     fadeStartTime(0),
     fadeAlpha(0),
     showDeathText(false),
     deathTextStartTime(0),
-    deathTextAlpha(0)
+    deathTextAlpha(0),
+    canRestart(false),
+    isPaused(false),
+    pauseScreenTexture(nullptr)
 { }
 
 Game::~Game() {
@@ -103,6 +123,13 @@ void Game::init(const char* title, int xPos, int yPos, int width, int height) {
         backgroundTexture = TextureManager::loadTexture("assets/BG1.png");
         foregroundTexture = TextureManager::loadTexture("assets/BG2.png");
         closestTexture = TextureManager::loadTexture("assets/BG3.png");
+        masteryTexture = TextureManager::loadTexture("assets/mastery 7.png");
+
+        // Load pause screen texture
+        pauseScreenTexture = TextureManager::loadTexture("assets/999707.png");
+        if (!pauseScreenTexture) {
+            std::cout << "Failed to load pause screen texture!" << std::endl;
+        }
 
         // Initialize player with size 50x50
         player = new GameObject(50, 50, 50, 50);
@@ -132,11 +159,29 @@ void Game::handleEvents() {
             isRunning = false;
         if (event.type == SDL_KEYDOWN) {
             switch (event.key.keysym.sym) {
-                case SDLK_w: case SDLK_SPACE: player->jump(); break;
-                case SDLK_s:
-                    // Removed player->move(0, 5); // Vertical movement handled by physics
+                case SDLK_ESCAPE:
+                    isPaused = !isPaused;
+                    if (isPaused) {
+                        // Pause both music and sound effects
+                        AudioManager::getInstance().pauseMusic();
+                        AudioManager::getInstance().pauseAllSounds();
+                    } else {
+                        // Resume both music and sound effects
+                        AudioManager::getInstance().resumeMusic();
+                        AudioManager::getInstance().resumeAllSounds();
+                    }
                     break;
-                // Cases A and D are handled by continuous key presses below
+                case SDLK_w: case SDLK_SPACE: 
+                    if (!isPaused) player->jump(); 
+                    break;
+                case SDLK_F5:
+                    // Only allow restart if player is dead and reset text is fully visible
+                    if (player && player->permanentlyDisabled && showDeathText && deathTextAlpha >= 255) {
+                        restart();
+                    }
+                    break;
+                case SDLK_s:
+                    break;
                 case SDLK_a:
                 case SDLK_d:
                     break;
@@ -163,8 +208,36 @@ void Game::handleEvents() {
 }
 
 void Game::update() {
-    // Add AudioManager update at the start of the update loop
+    // Always update audio manager even when paused
     AudioManager::getInstance().update();
+
+    // Don't update game logic if paused
+    if (isPaused) {
+        return;
+    }
+
+    // Check if the player is dead and start death effects
+    if (player && player->permanentlyDisabled) {
+        // Stop background music when player dies (will stop every time)
+        AudioManager::getInstance().stopMusic();
+
+        // If death animation is complete, start fade
+        if (player->isDeathAnimationComplete()) {
+            isFading = true;
+            if (fadeStartTime == 0) { // Only set start time once
+                fadeStartTime = SDL_GetTicks();
+            }
+        }
+
+        // Start death text only after fade is complete
+        if (isFading && fadeAlpha >= 255 && !showDeathText) {
+            showDeathText = true;
+            deathTextStartTime = SDL_GetTicks();
+            deathTextAlpha = 0;
+            // Play death sound effect
+            AudioManager::getInstance().playSoundEffect("audio/Dark Souls - You Died (Sound Effect).mp3");
+        }
+    }
 
     // Update fade effect
     if (isFading) {
@@ -179,28 +252,16 @@ void Game::update() {
         }
     }
 
-    // Check if the player is dead and ensure the screen stays black
-    if (player && player->permanentlyDisabled) {
-        isFading = true;
-        fadeAlpha = 255;  // Keep the screen black
-    }
-
-    // Check if the player is dead and start death effects
-    if (player && player->permanentlyDisabled && !showDeathText) {
-        showDeathText = true;
-        deathTextStartTime = SDL_GetTicks();
-        deathTextAlpha = 0;
-        // Play death sound effect
-        AudioManager::getInstance().playSoundEffect("audio/Dark Souls - You Died (Sound Effect).mp3");
-    }
-
-    // Update death text alpha
+    // Update death text fade in
     if (showDeathText) {
-        Uint32 elapsedTime = SDL_GetTicks() - deathTextStartTime;
-        if (elapsedTime < DEATH_TEXT_DURATION) {
-            deathTextAlpha = static_cast<Uint8>((elapsedTime * 255) / DEATH_TEXT_DURATION);
+        Uint32 currentTime = SDL_GetTicks();
+        Uint32 deathTextElapsed = currentTime - deathTextStartTime;
+        
+        if (deathTextElapsed >= DEATH_TEXT_DURATION) {
+            deathTextAlpha = 255;  // Keep text fully visible
         } else {
-            deathTextAlpha = 255;  // Keep fully visible after fade in
+            // Gradually increase alpha from 0 to 255
+            deathTextAlpha = static_cast<Uint8>((deathTextElapsed * 255) / DEATH_TEXT_DURATION);
         }
     }
 
@@ -346,6 +407,30 @@ void Game::update() {
 
         if (!hitSomething) {
             AudioManager::getInstance().playMissSound();
+        }
+    }
+
+    // Update mastery animation if player defeats 5 enemies
+    if (defeatedEnemyCount == 5 && !showMasteryAnimation) {
+        showMasteryAnimation = true;
+        masteryStartTime = SDL_GetTicks();
+        masteryFrame = 0;
+        // Play both mastery sound effects
+        AudioManager::getInstance().playSoundEffect("audio/mastery_emote_tier5.mp3");
+        AudioManager::getInstance().playSoundEffect("audio/death-is-like-the-wind-always-by-my-side-101soundboards.mp3");
+    }
+
+    // Update mastery animation frames
+    if (showMasteryAnimation) {
+        Uint32 currentTime = SDL_GetTicks();
+        Uint32 elapsedTime = currentTime - masteryStartTime;
+        int expectedFrame = (elapsedTime / MASTERY_FRAME_DURATION) % MASTERY_TOTAL_FRAMES;
+        
+        if (expectedFrame != masteryFrame) {
+            masteryFrame = expectedFrame;
+            if (masteryFrame >= MASTERY_TOTAL_FRAMES - 1) {
+                showMasteryAnimation = false;
+            }
         }
     }
 
@@ -533,6 +618,43 @@ void Game::render() {
         }
     }
 
+    // Render control instructions in top right corner
+    if (font) {
+        SDL_Color textColor = {255, 0, 0, 255}; // Changed to red color
+        const char* instructions[] = {
+            "Move : W A S D",
+            "Attack : left click",
+            "Parry : right click",
+            "Pause : ESC"
+        };
+        
+        // Create a smaller font for instructions
+        TTF_Font* smallFont = TTF_OpenFont("font/Jacquard_12/Jacquard12-Regular.ttf", 24); // Reduced from 36 to 24
+        if (smallFont) {
+            int yOffset = 20; // Starting Y position
+            for (const char* text : instructions) {
+                SDL_Surface* instructSurface = TTF_RenderText_Solid(smallFont, text, textColor);
+                if (instructSurface) {
+                    SDL_Texture* instructTexture = SDL_CreateTextureFromSurface(renderer, instructSurface);
+                    
+                    SDL_Rect instructRect;
+                    instructRect.w = instructSurface->w;
+                    instructRect.h = instructSurface->h;
+                    instructRect.x = SCREEN_WIDTH - instructRect.w - 20; // 20 pixels from right edge
+                    instructRect.y = yOffset;
+                    
+                    SDL_RenderCopy(renderer, instructTexture, NULL, &instructRect);
+                    
+                    SDL_FreeSurface(instructSurface);
+                    SDL_DestroyTexture(instructTexture);
+                    
+                    yOffset += instructRect.h + 5; // Move down for next line with 5px spacing
+                }
+            }
+            TTF_CloseFont(smallFont);
+        }
+    }
+
     // 6. Render hitboxes on top of everything
     if (player && player->getX() >= 0 && player->getY() >= 0) {
         int renderX = player->getX() - cameraX;
@@ -549,8 +671,31 @@ void Game::render() {
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
     }
 
-    // Render the "YOU DIED" text after fade effect
+    // Render mastery animation if active (and not during death or pause)
+    if (showMasteryAnimation && masteryTexture && !showDeathText && !isPaused) {
+        const MasteryFrame& frame = MASTERY_FRAMES[masteryFrame];
+
+        SDL_Rect srcRect = {
+            frame.x,
+            frame.y,
+            frame.w,
+            frame.h
+        };
+
+        // Center the mastery animation above the player with 1.5x scaling
+        SDL_Rect destRect = {
+            player->getX() - cameraX + (player->destRect.w - (int)(frame.w * 1.5f)) / 2,
+            player->getY() - cameraY - (int)(frame.h * 1.5f) - 20,  // Position above player with 20px gap
+            (int)(frame.w * 1.5f),
+            (int)(frame.h * 1.5f)
+        };
+
+        SDL_RenderCopy(renderer, masteryTexture, &srcRect, &destRect);
+    }
+
+    // Render the "YOU DIED" text and reset prompt after fade effect
     if (showDeathText && font) {
+        // Render YOU DIED text
         TTF_Font* deathFont = TTF_OpenFont("font/Jacquard_12/Jacquard12-Regular.ttf", 72);
         if (deathFont) {
             SDL_Color deathTextColor = {255, 0, 0, deathTextAlpha};  // Red color with fading alpha
@@ -566,6 +711,26 @@ void Game::render() {
                 deathRect.y = (SCREEN_HEIGHT - deathRect.h) / 2;
                 
                 SDL_RenderCopy(renderer, deathTexture, NULL, &deathRect);
+
+                // Only show reset prompt when YOU DIED is fully visible
+                if (deathTextAlpha >= 255) {
+                    SDL_Color resetTextColor = {255, 255, 255, 255}; // White color for reset text
+                    SDL_Surface* resetSurface = TTF_RenderText_Solid(deathFont, "Press F5 to reset", resetTextColor);
+                    if (resetSurface) {
+                        SDL_Texture* resetTexture = SDL_CreateTextureFromSurface(renderer, resetSurface);
+                        
+                        SDL_Rect resetRect;
+                        resetRect.w = resetSurface->w;
+                        resetRect.h = resetSurface->h;
+                        resetRect.x = (SCREEN_WIDTH - resetRect.w) / 2;
+                        resetRect.y = deathRect.y + deathRect.h + 20; // 20 pixels below YOU DIED text
+                        
+                        SDL_RenderCopy(renderer, resetTexture, NULL, &resetRect);
+                        
+                        SDL_FreeSurface(resetSurface);
+                        SDL_DestroyTexture(resetTexture);
+                    }
+                }
                 
                 SDL_FreeSurface(deathSurface);
                 SDL_DestroyTexture(deathTexture);
@@ -574,6 +739,88 @@ void Game::render() {
         }
     }
 
+    // Render pause screen overlay if game is paused
+    if (isPaused) {
+        // First draw a semi-transparent black overlay
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 192); // 75% opacity black
+        SDL_Rect fullscreenRect = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+        SDL_RenderFillRect(renderer, &fullscreenRect);
+
+        if (pauseScreenTexture) {
+            // Calculate dimensions to maintain aspect ratio while filling screen
+            int imgW, imgH;
+            SDL_QueryTexture(pauseScreenTexture, NULL, NULL, &imgW, &imgH);
+            float imgAspect = (float)imgW / imgH;
+            float screenAspect = (float)SCREEN_WIDTH / SCREEN_HEIGHT;
+            
+            SDL_Rect pauseRect;
+            if (screenAspect > imgAspect) {
+                // Screen is wider than image
+                pauseRect.w = SCREEN_WIDTH;
+                pauseRect.h = (int)(SCREEN_WIDTH / imgAspect);
+                pauseRect.x = 0;
+                pauseRect.y = (SCREEN_HEIGHT - pauseRect.h) / 2;
+            } else {
+                // Screen is taller than image
+                pauseRect.h = SCREEN_HEIGHT;
+                pauseRect.w = (int)(SCREEN_HEIGHT * imgAspect);
+                pauseRect.x = (SCREEN_WIDTH - pauseRect.w) / 2;
+                pauseRect.y = 0;
+            }
+            
+            SDL_RenderCopy(renderer, pauseScreenTexture, NULL, &pauseRect);
+        }
+
+        // Render "PAUSED" text and subtitle
+        if (font) {
+            TTF_Font* pauseFont = TTF_OpenFont("font/Jacquard_12/Jacquard12-Regular.ttf", 72);
+            if (pauseFont) {
+                SDL_Color pauseTextColor = {255, 0, 0, 255}; // Red color
+                SDL_Surface* pauseSurface = TTF_RenderText_Solid(pauseFont, "PAUSED", pauseTextColor);
+                if (pauseSurface) {
+                    SDL_Texture* pauseTexture = SDL_CreateTextureFromSurface(renderer, pauseSurface);
+                    
+                    SDL_Rect textRect;
+                    textRect.w = pauseSurface->w;
+                    textRect.h = pauseSurface->h;
+                    textRect.x = (SCREEN_WIDTH - textRect.w) / 2;
+                    textRect.y = (SCREEN_HEIGHT - textRect.h) / 2;
+                    
+                    SDL_RenderCopy(renderer, pauseTexture, NULL, &textRect);
+                    
+                    // Add "Press ESC" subtitle in blue
+                    TTF_Font* smallFont = TTF_OpenFont("font/Jacquard_12/Jacquard12-Regular.ttf", 36);
+                    if (smallFont) {
+                        SDL_Color escTextColor = {0, 0, 255, 255}; // Blue color
+                        SDL_Surface* escSurface = TTF_RenderText_Solid(smallFont, "Press ESC", escTextColor);
+                        if (escSurface) {
+                            SDL_Texture* escTexture = SDL_CreateTextureFromSurface(renderer, escSurface);
+                            
+                            SDL_Rect escRect;
+                            escRect.w = escSurface->w;
+                            escRect.h = escSurface->h;
+                            escRect.x = (SCREEN_WIDTH - escRect.w) / 2;
+                            escRect.y = textRect.y + textRect.h + 20; // 20 pixels below PAUSED text
+                            
+                            SDL_RenderCopy(renderer, escTexture, NULL, &escRect);
+                            
+                            SDL_FreeSurface(escSurface);
+                            SDL_DestroyTexture(escTexture);
+                        }
+                        TTF_CloseFont(smallFont);
+                    }
+                    
+                    SDL_FreeSurface(pauseSurface);
+                    SDL_DestroyTexture(pauseTexture);
+                }
+                TTF_CloseFont(pauseFont);
+            }
+        }
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+    }
+
+    // Present the rendered frame
     SDL_RenderPresent(renderer);
 }
 
@@ -622,4 +869,45 @@ void Game::spawnRandomEnemy() {
     if (newEnemy) {
         enemies.push_back(newEnemy);
     }
+}
+
+void Game::restart() {
+    // Play restart sound
+    AudioManager::getInstance().playSoundEffect("audio/ahhyooaaawhoaaa.mp3");
+
+    // Reset game state variables
+    defeatedEnemyCount = 0;
+    successfulParryCount = 0;
+    firstWaveDefeated = false;
+    secondMusicStarted = false;
+    timerStarted = false;
+    hasStartedTimer = false;
+    isFading = false;
+    fadeAlpha = 0;
+    showDeathText = false;
+    deathTextAlpha = 0;
+    
+    // Clear existing enemies
+    for (Enemy* enemy : enemies) {
+        delete enemy;
+    }
+    enemies.clear();
+
+    // Recreate player
+    delete player;
+    player = new GameObject(50, 50, 50, 50);
+    if (player) {
+        player->setGameRef(this);
+    }
+
+    // Reset camera position
+    cameraX = 0;
+    cameraY = 0;
+
+    // Spawn initial enemy
+    spawnRandomEnemy();
+
+    // Reset music to initial track
+    AudioManager::getInstance().playMusic("audio/medieval-star-188280.mp3");
+    AudioManager::getInstance().setMusicVolume(64);
 }

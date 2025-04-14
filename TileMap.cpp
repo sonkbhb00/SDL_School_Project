@@ -3,7 +3,7 @@
 #include "Game.hpp"
 #include <SDL.h>
 #include <iostream>
-#include <fstream> 
+#include <fstream>
 
 // Definition for the static grid member using hardcoded values instead of Game:: constants
 int TileMap::grid[64][64];
@@ -41,7 +41,7 @@ int levelData[64][64] = {
     {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3},
     {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3},
     {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3},
-    {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3},
+    {3, 3, 3, 3, 3, 4, 3, 3, 5, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 5, 5, 3, 3, 3, 3, 3, 3, 3, 6, 3, 3, 3, 3, 3, 5, 4, 3, 3, 3, 3, 3, 3, 3, 6, 6, 3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 5, 3, 3},
     // Final ground level
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -57,6 +57,12 @@ TileMap::TileMap() {
         std::cout << "Error: Failed to load tileset texture assets/Tileset.png" << std::endl;
     }
 
+    decorsTexture = TextureManager::loadTexture("assets/Decors.png");
+    if (!decorsTexture) {
+        // Handle error: Decors failed to load!
+        std::cout << "Error: Failed to load decors texture assets/Decors.png" << std::endl;
+    }
+
     loadMap(levelData);
 
     // srcRect and destRect will be set dynamically in drawMap
@@ -70,6 +76,10 @@ TileMap::~TileMap() {
     if (tileSetTexture) {
         SDL_DestroyTexture(tileSetTexture);
         tileSetTexture = nullptr;
+    }
+    if (decorsTexture) {
+        SDL_DestroyTexture(decorsTexture);
+        decorsTexture = nullptr;
     }
 }
 
@@ -87,54 +97,73 @@ void TileMap::drawMap() {
 }
 
 void TileMap::drawMap(int cameraX, int cameraY) {
-    if (!tileSetTexture) return;
+    if (!tileSetTexture || !decorsTexture) return;
 
     const int TILE_SIZE = Game::TILE_SIZE;
-    const int screenWidth = 720;  // Match our new resolution
-    const int screenHeight = 576; // Match our new resolution
+    const int screenWidth = 720;
+    const int screenHeight = 576;
 
-    // Calculate visible tile range based on camera position
     int startCol = cameraX / TILE_SIZE;
     int endCol = (cameraX + screenWidth) / TILE_SIZE + 1;
     int startRow = cameraY / TILE_SIZE;
     int endRow = (cameraY + screenHeight) / TILE_SIZE + 1;
 
-    // Clamp to valid ranges
     startCol = std::max(0, startCol);
     endCol = std::min(64, endCol);
     startRow = std::max(0, startRow);
     endRow = std::min(64, endRow);
 
-    // Only draw tiles that are visible on screen
+    // Draw base tiles first
     for (int row = startRow; row < endRow; row++) {
         for (int col = startCol; col < endCol; col++) {
             int tileID = grid[row][col];
 
-            // Calculate tile position adjusted for camera
             destRect.x = col * TILE_SIZE - cameraX;
             destRect.y = row * TILE_SIZE - cameraY;
             destRect.w = TILE_SIZE;
             destRect.h = TILE_SIZE;
 
-            // Default srcRect size
             srcRect.w = TILE_SIZE;
             srcRect.h = TILE_SIZE;
 
             bool drawTile = true;
 
-            // Select the source rectangle based on the tile ID
             switch (tileID) {
                 case 0: srcRect.x = 1 * TILE_SIZE; srcRect.y = 1 * TILE_SIZE; break;
                 case 1: srcRect.x = 1 * TILE_SIZE; srcRect.y = 0 * TILE_SIZE; break;
                 case 3: drawTile = false; break;
+                case 4: // Tree
+                    srcRect.x = 10;
+                    srcRect.y = 15;
+                    srcRect.w = 205;
+                    srcRect.h = 245;
+                    destRect.w = TILE_SIZE * 3;
+                    destRect.h = TILE_SIZE * 4;
+                    destRect.y -= TILE_SIZE * 3;
+                    break;
+                case 5: // Bush
+                    srcRect.x = 315;
+                    srcRect.y = 215;
+                    srcRect.w = 70;
+                    srcRect.h = 48;
+                    destRect.h = TILE_SIZE;
+                    destRect.y -= TILE_SIZE/2;
+                    break;
+                case 6: // Stone Wall
+                    srcRect.x = 420;
+                    srcRect.y = 225;
+                    srcRect.w = 58;
+                    srcRect.h = 43;
+                    destRect.h = TILE_SIZE;
+                    destRect.y -= TILE_SIZE/3;
+                    break;
                 default: drawTile = false; break;
             }
 
             if (drawTile) {
-                SDL_RenderCopy(Game::renderer, tileSetTexture, &srcRect, &destRect);
+                SDL_Texture* currentTexture = (tileID >= 4) ? decorsTexture : tileSetTexture;
+                SDL_RenderCopy(Game::renderer, currentTexture, &srcRect, &destRect);
             }
         }
     }
 }
-
-// Remove getMapMatrixData, allocateGrid, deallocateGrid if they exist
