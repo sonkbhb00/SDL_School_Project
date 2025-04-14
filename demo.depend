@@ -10,7 +10,7 @@
 	<SDL.h>
 	"Game.hpp"
 
-1744637765 c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.hpp
+1744643439 c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.hpp
 	<SDL.h>
 	<SDL_mixer.h>
 	<SDL_ttf.h>
@@ -91,7 +91,7 @@
 	<cstdlib>
 	<ctime>
 
-1744629981 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.cpp
+1744643251 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.cpp
 	"Game.hpp"
 	"GameObject.h"
 	"TextureManager.h"

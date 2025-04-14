@@ -49,8 +49,8 @@ Game::Game() :
     font(nullptr),
     showParryText(false),
     parryTextStartTime(0),
-    parryTextColor{255, 255, 255, 255},  // Moved up
-    parryTextSize(48),  // Moved down
+    parryTextColor{255, 255, 255, 255},
+    parryTextSize(48),
     successfulParryCount(0),
     timerStarted(false),
     timerStartTime(0),
@@ -69,7 +69,9 @@ Game::Game() :
     isPaused(false),
     pauseScreenTexture(nullptr),
     instructionTexture(nullptr),
-    showInstructions(false)
+    showInstructions(false),
+    showInitialInstructions(true),
+    showEndGameScreen(false)
 { }
 
 Game::~Game() {
@@ -137,6 +139,9 @@ void Game::init(const char* title, int xPos, int yPos, int width, int height) {
         if (!instructionTexture) {
             std::cout << "Failed to load instruction texture!" << std::endl;
         }
+        showInitialInstructions = true;  // Show instructions at start
+        isPaused = true;  // Pause the game initially
+        AudioManager::getInstance().pauseMusic();  // Pause music initially
         // Initialize player with size 50x50
         player = new GameObject(50, 50, 50, 50);
         if (player == nullptr) {
@@ -165,6 +170,13 @@ void Game::handleEvents() {
             isRunning = false;
         if (event.type == SDL_KEYDOWN) {
             switch (event.key.keysym.sym) {
+                case SDLK_RETURN:  // Enter key
+                    if (showInitialInstructions) {
+                        showInitialInstructions = false;
+                        isPaused = false;
+                        AudioManager::getInstance().resumeMusic();
+                    }
+                    break;
                 case SDLK_ESCAPE:
                     isPaused = !isPaused;
                     showInstructions = false;  // Always hide instructions when ESC is pressed
@@ -215,6 +227,14 @@ void Game::handleEvents() {
             }
         }
         if (event.type == SDL_MOUSEBUTTONDOWN) {
+            // Handle initial instructions dismissal
+            if (showInitialInstructions) {
+                showInitialInstructions = false;
+                isPaused = false;
+                AudioManager::getInstance().resumeMusic();
+                return;
+            }
+
             int mouseX = event.button.x + cameraX; // Add camera offset to get world coordinates
             int mouseY = event.button.y + cameraY;
             std::cout << "Mouse clicked at: (" << mouseX << ", " << mouseY << ")" << std::endl;
@@ -493,12 +513,41 @@ void Game::update() {
 
     // End game when timer runs out (only if timer has started)
     if (timerStarted && SDL_GetTicks() - timerStartTime >= TIMER_DURATION) {
-        isRunning = false;
+        isPaused = true;
+        showEndGameScreen = true;
     }
 }
 
 void Game::render() {
     SDL_RenderClear(renderer);
+
+    // Render end game screen if active
+    if (showEndGameScreen) {
+        // Create semi-transparent black overlay
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 200);
+        SDL_RenderFillRect(renderer, NULL);
+
+        // Render "thank for the suffering <3" text
+        if (font) {
+            SDL_Color textColor = {255, 255, 255, 255};
+            SDL_Surface* textSurface = TTF_RenderText_Blended(font, "thank for the suffering <3", textColor);
+            if (textSurface) {
+                SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+                if (textTexture) {
+                    SDL_Rect textRect;
+                    textRect.w = textSurface->w;
+                    textRect.h = textSurface->h;
+                    textRect.x = (SCREEN_WIDTH - textRect.w) / 2;
+                    textRect.y = (SCREEN_HEIGHT - textRect.h) / 2;
+                    SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+                    SDL_DestroyTexture(textTexture);
+                }
+                SDL_FreeSurface(textSurface);
+            }
+        }
+        return;
+    }
 
     // 1. Render background layers from back to front
     if (backgroundTexture) {
@@ -898,8 +947,62 @@ void Game::render() {
         };
         SDL_RenderCopy(renderer, instructionTexture, NULL, NULL);
     }
+    if (font && !showDeathText) {
+    SDL_Color textColor = {255, 255, 255, 255}; // White color (R,G,B,A)
+    SDL_Surface* textSurface = TTF_RenderText_Solid(font, "F1 for instruction", textColor);
+    if (textSurface) {
+        SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
 
+        SDL_Rect textRect;
+        textRect.w = textSurface->w;
+        textRect.h = textSurface->h;
+        textRect.x = 0;
+        textRect.y = 50;  // 50 pixels from top
+
+        SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+
+        SDL_FreeSurface(textSurface);
+        SDL_DestroyTexture(textTexture);
+    }
+}
     // 8. Present renderer
+    // Show initial instructions
+    if (showInitialInstructions && instructionTexture) {
+        // Semi-transparent black overlay
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 192);
+        SDL_Rect fullscreenRect = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+        SDL_RenderFillRect(renderer, &fullscreenRect);
+
+        // Render the instruction texture
+        SDL_RenderCopy(renderer, instructionTexture, NULL, NULL);
+
+        // Add "Press Enter to start" text
+        if (font) {
+            TTF_Font* startFont = TTF_OpenFont("font/Jacquard_12/Jacquard12-Regular.ttf", 36);
+            if (startFont) {
+                SDL_Color startTextColor = {255, 255, 255, 255};
+                SDL_Surface* startSurface = TTF_RenderText_Solid(startFont, "Press Enter to start", startTextColor);
+                if (startSurface) {
+                    SDL_Texture* startTexture = SDL_CreateTextureFromSurface(renderer, startSurface);
+                    
+                    SDL_Rect startRect;
+                    startRect.w = startSurface->w;
+                    startRect.h = startSurface->h;
+                    startRect.x = (SCREEN_WIDTH - startRect.w) / 2;
+                    startRect.y = SCREEN_HEIGHT - 100;  // 100 pixels from bottom
+
+                    SDL_RenderCopy(renderer, startTexture, NULL, &startRect);
+
+                    SDL_FreeSurface(startSurface);
+                    SDL_DestroyTexture(startTexture);
+                }
+                TTF_CloseFont(startFont);
+            }
+        }
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+    }
+
     SDL_RenderPresent(renderer);
 }
 
