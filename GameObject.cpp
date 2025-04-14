@@ -8,37 +8,43 @@
 #include <ctime>   // For std::time
 
 GameObject::GameObject(int x, int y, int width, int height)
-    : currentFrame(0),
-      xpos(x),
-      ypos(y),
-      prevX(x),
+    : prevX(x),
       prevY(y),
       velocityX(0.0f),
       velocityY(0.0f),
+      xpos(x),
+      ypos(y),
       onGround(false),
       facingRight(true),
       currentState(IDLE),
       isAttacking(false),
-      attackStartTime(0),
-      attackDuration(300),
       isParrying(false),
-      parryStartTime(0),
-      parryDuration(300),
+      isDashing(false),
+      isInvincibleDuringDash(false),
+      hasParriedDuringDash(false),
       inHitState(false),
       permanentlyDisabled(false),
+      isMoving(false),
+      isFlashing(false),
+      attackStartTime(0),
+      attackDuration(300),
+      parryStartTime(0),
+      parryDuration(300),
+      dashStartTime(0),
       takeHitStartTime(0),
       takeHitDuration(300),
-      isFlashing(false),
+      lastAttackTime(0),
+      lastParryTime(0),
+      lastDashTime(0),
       flashStartTime(0),
       flashDuration(150),
       flashAlpha(255),
+      currentFrame(0),
+      animationTransitionThreshold(0.01f),
       lastFrameTime(SDL_GetTicks()),
       animSpeed(100),
-      isMoving(false),
-      animationTransitionThreshold(0.01f),
       parryFrameIndex(0),
-      lastAttackTime(0),
-      lastParryTime(0),
+      enemiesDefeatedCount(0),
       game(nullptr)  // Initialize game pointer
 {
     // Load textures
@@ -47,8 +53,9 @@ GameObject::GameObject(int x, int y, int width, int height)
     attackTexture = TextureManager::loadTexture("assets/Attack.png");
     takeHitTexture = TextureManager::loadTexture("assets/Take Hit.png");
     deathTexture = TextureManager::loadTexture("assets/Death.png");
+    dashTexture = TextureManager::loadTexture("assets/Dash.png");
 
-    if (!idleTexture || !runTexture || !attackTexture || !takeHitTexture || !deathTexture) {
+    if (!idleTexture || !runTexture || !attackTexture || !takeHitTexture || !deathTexture || !dashTexture) {
         std::cerr << "Failed to load textures" << std::endl;
         return;
     }
@@ -81,6 +88,26 @@ GameObject::~GameObject() {
 }
 
 void GameObject::update() {
+    // Handle dash state
+    if (isDashing) {
+        Uint32 currentTime = SDL_GetTicks();
+        if (currentTime - dashStartTime >= DASH_DURATION) {
+            isDashing = false;
+            isFlashing = false; // End invulnerability
+            currentState = onGround ? IDLE : JUMPING;
+            currentTexture = onGround ? idleTexture : runTexture;
+        } else {
+            currentState = DASHING;
+            currentTexture = dashTexture;  // Use dash animation
+            animSpeed = 50;  // Make dash animation faster
+            
+            // Update dash animation frame
+            int frameElapsed = ((currentTime - dashStartTime) * DASH_FRAMES) / DASH_DURATION;
+            currentFrame = frameElapsed % DASH_FRAMES;
+            srcRect.x = currentFrame * frameWidth;
+        }
+    }
+
     // Update flash effect
     if (isFlashing) {
         Uint32 currentTime = SDL_GetTicks();
@@ -336,11 +363,13 @@ void GameObject::takeHit() {
             game->startFadeEffect();
         }
 
-        // Add knockback effect
-        float knockbackForce = 5.0f;
-        velocityX = facingRight ? -knockbackForce : knockbackForce;
-        velocityY = -4.0f; // Add a small upward force for visual effect
-        onGround = false;
+        // Only apply knockback if not dashing
+        if (!isDashing) {
+            float knockbackForce = 5.0f;
+            velocityX = facingRight ? -knockbackForce : knockbackForce;
+            velocityY = -4.0f; // Add a small upward force for visual effect
+            onGround = false;
+        }
     }
 }
 
@@ -397,4 +426,49 @@ void GameObject::revertPosition() {
     ypos = prevY;
     destRect.x = xpos;
     destRect.y = ypos;
+}
+
+void GameObject::dash() {
+    // Check if enough enemies have been defeated to unlock dash
+    if (enemiesDefeatedCount < MIN_ENEMIES_FOR_DASH) {
+        return;
+    }
+
+    Uint32 currentTime = SDL_GetTicks();
+    
+    // Calculate current dash cooldown based on enemies defeated
+    Uint32 currentCooldown = BASE_DASH_COOLDOWN;
+    int excessEnemies = enemiesDefeatedCount - MIN_ENEMIES_FOR_DASH;
+    if (excessEnemies > 0) {
+        Uint32 reduction = excessEnemies * COOLDOWN_REDUCTION_PER_ENEMY;
+        if (reduction > BASE_DASH_COOLDOWN) {
+            currentCooldown = 0;
+        } else {
+            currentCooldown -= reduction;
+        }
+    }
+
+    // Check if dash is still in cooldown
+    if (currentTime - lastDashTime < currentCooldown) {
+        return; // Still in cooldown
+    }
+
+    // Only allow dashing if not already dashing, attacking, parrying, in hit state, or disabled
+    if (!isDashing && !isAttacking && !isParrying && !inHitState && !permanentlyDisabled) {
+        isDashing = true;
+        dashStartTime = currentTime;
+        lastDashTime = currentTime; // Set cooldown start time when dash begins
+        hasParriedDuringDash = false;
+        
+        // Play random dash sound
+        AudioManager::getInstance().playRandomDashSound();
+        
+        // Instantly move 75 pixels in facing direction
+        setX(xpos + (facingRight ? 75 : -75));
+        
+        // Make player invulnerable during dash with flash effect
+        isFlashing = true;
+        flashStartTime = currentTime;
+        flashAlpha = 255;
+    }
 }

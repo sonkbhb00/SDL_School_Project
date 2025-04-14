@@ -24,6 +24,14 @@ AudioManager::AudioManager() : backgroundMusic(nullptr), nextMusicPath(nullptr),
         "audio/11L-two_big_sword_clashe-1744557097181.mp3",
         "audio/11L-two_big_sword_clashe-1744557099053.mp3"
     };
+
+    // Initialize dash sound paths
+    dashSoundPaths = {
+        "audio/Yasuo_Original_EDash_0.ogg",
+        "audio/Yasuo_Original_EDash_1.ogg",
+        "audio/Yasuo_Original_EDash_2.ogg",
+        "audio/Yasuo_Original_EDash_3.ogg"
+    };
 }
 
 AudioManager& AudioManager::getInstance() {
@@ -152,4 +160,12 @@ void AudioManager::cleanup() {
     
     Mix_CloseAudio();
     Mix_Quit();
+}
+
+void AudioManager::playRandomDashSound() {
+    if (dashSoundPaths.empty()) return;
+    
+    std::uniform_int_distribution<int> dist(0, dashSoundPaths.size() - 1);
+    int randomIndex = dist(rng);
+    playSoundEffect(dashSoundPaths[randomIndex].c_str());
 }

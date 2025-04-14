@@ -45,7 +45,8 @@ Enemy::Enemy(const char* idleTexturePath, const char* runTexturePath, const char
       takeHitTexture(nullptr), deathTexture(nullptr), currentTexture(nullptr),
       isAttacking(false),
       attackStartTime(0),
-      attackDuration(300),
+      attackHitboxDuration(10),  // Hitbox only active for 10ms
+      attackAnimDuration(300),    // Full attack animation duration
       attackRange(65.0f),
       lastAttackTime(0),
       attackCooldown(1000),
@@ -165,19 +166,17 @@ void Enemy::update(const GameObject* player) {
 
     // Handle attack state
     if (isAttacking) {
-        // Calculate time per frame for attack animation
-        Uint32 timePerFrame = attackDuration / attackTotalFrames;
         Uint32 attackElapsed = currentTime - attackStartTime;
-        
-        // Update frame if enough time has passed
-        int expectedFrame = attackElapsed / timePerFrame;
+
+        // Update animation frames based on total animation duration
+        int expectedFrame = (attackElapsed * attackTotalFrames) / attackAnimDuration;
         if (expectedFrame < attackTotalFrames && expectedFrame != currentFrame) {
             currentFrame = expectedFrame;
             lastFrameTime = currentTime;
         }
-        
-        // End attack when either all frames are shown or duration is exceeded
-        if (expectedFrame >= attackTotalFrames || attackElapsed >= attackDuration) {
+
+        // End attack animation when duration is exceeded
+        if (attackElapsed >= attackAnimDuration) {
             isAttacking = false;
             if (!isInHitState && !isPermanentlyDisabled) {
                 setAnimation(ENEMY_IDLE);
@@ -238,7 +237,9 @@ void Enemy::update(const GameObject* player) {
 }
 
 SDL_Rect Enemy::getAttackHitbox() const {
-    if (currentState != ENEMY_ATTACKING) {
+    // Only return a valid hitbox if we're attacking AND within the 10ms window
+    if (currentState != ENEMY_ATTACKING ||
+        SDL_GetTicks() - attackStartTime > attackHitboxDuration) {
         return {0, 0, 0, 0};
     }
 

@@ -74,7 +74,8 @@ private:
     // Attack properties
     bool isAttacking;
     Uint32 attackStartTime;
-    Uint32 attackDuration;
+    Uint32 attackHitboxDuration;  // Duration for the actual hitbox 
+    Uint32 attackAnimDuration;    // Duration for the full attack animation
     float attackRange;
     Uint32 lastAttackTime;
     Uint32 attackCooldown;

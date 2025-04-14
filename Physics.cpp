@@ -30,7 +30,7 @@ void Physics::applyGravity(GameObject* obj) {
 }
 
 void Physics::applyFriction(GameObject* obj) {
-    if (obj && obj->onGround) {
+    if (obj && obj->onGround && !obj->isDashing) {  // Don't apply friction during dash
         obj->velocityX *= FRICTION;
         if (std::abs(obj->velocityX) < 0.1f) {
             obj->velocityX = 0.0f;

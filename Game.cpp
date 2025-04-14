@@ -49,8 +49,8 @@ Game::Game() :
     font(nullptr),
     showParryText(false),
     parryTextStartTime(0),
-    parryTextSize(48),
-    parryTextColor{255, 255, 255, 255},
+    parryTextColor{255, 255, 255, 255},  // Moved up
+    parryTextSize(48),  // Moved down
     successfulParryCount(0),
     timerStarted(false),
     timerStartTime(0),
@@ -171,8 +171,11 @@ void Game::handleEvents() {
                         AudioManager::getInstance().resumeAllSounds();
                     }
                     break;
-                case SDLK_w: case SDLK_SPACE: 
-                    if (!isPaused) player->jump(); 
+                case SDLK_w:
+                    if (!isPaused) player->jump();
+                    break;
+                case SDLK_SPACE:
+                    if (!isPaused) player->dash();
                     break;
                 case SDLK_F5:
                     // Only allow restart if player is dead and reset text is fully visible
@@ -352,22 +355,41 @@ void Game::update() {
                 SDL_Rect playerCollider = player->getCollider();
 
                 if (SDL_HasIntersection(&enemyAttackBox, &playerCollider)) {
-                    if (player->isParrying) {
+                    if (player->isDashing) {
+                        if (!player->hasParriedDuringDash) {
+                            // Successful parry during dash
+                            AudioManager::getInstance().playRandomParrySound();
+                            player->hasParriedDuringDash = true;
+                            
+                            // Show parry text
+                            showParryText = true;
+                            parryTextStartTime = SDL_GetTicks();
+                            successfulParryCount++;
+
+                            // Generate random bright color
+                            parryTextColor.r = rand() % 128 + 128;
+                            parryTextColor.g = rand() % 128 + 128;
+                            parryTextColor.b = rand() % 128 + 128;
+                            parryTextColor.a = 255;
+                        }
+                        // During dash, always ignore hit regardless of parry status
+                        return;
+                    } else if (player->isParrying) {
+                        // Normal parry when not dashing
                         float parryKnockback = 10.0f;
                         player->velocityX = player->facingRight ? -parryKnockback : parryKnockback;
                         AudioManager::getInstance().playRandomParrySound();
 
-                        // Show parry text with random color when successful
                         showParryText = true;
                         parryTextStartTime = SDL_GetTicks();
-                        successfulParryCount++;  // Increment successful parries
+                        successfulParryCount++;
 
-                        // Generate random bright color
-                        parryTextColor.r = rand() % 128 + 128; // 128-255 for brighter colors
+                        parryTextColor.r = rand() % 128 + 128;
                         parryTextColor.g = rand() % 128 + 128;
                         parryTextColor.b = rand() % 128 + 128;
                         parryTextColor.a = 255;
                     } else {
+                        // Only take hit if not dashing and not parrying
                         AudioManager::getInstance().playRandomHitSound();
                         player->takeHit();
                     }
@@ -383,8 +405,9 @@ void Game::update() {
                     !enemy->isTakingHit() && !enemy->isPermanentlyDisabled) {
                     AudioManager::getInstance().playRandomHitSound();
                     enemy->takeHit();
-                    // Increment defeat count when enemy is hit and will be disabled
+                    // Increment both game and player defeat counts
                     defeatedEnemyCount++;
+                    player->incrementEnemiesDefeated();
                 }
             }
         }
@@ -410,8 +433,8 @@ void Game::update() {
         }
     }
 
-    // Update mastery animation if player defeats 5 enemies
-    if (defeatedEnemyCount == 5 && !showMasteryAnimation) {
+    // Update mastery animation if player defeats 5 enemies and is alive
+    if (defeatedEnemyCount == 5 && !showMasteryAnimation && player && !player->permanentlyDisabled) {
         showMasteryAnimation = true;
         masteryStartTime = SDL_GetTicks();
         masteryFrame = 0;
@@ -618,37 +641,59 @@ void Game::render() {
         }
     }
 
-    // Render control instructions in top right corner
+    // Render cooldown indicators in top right corner
     if (font) {
-        SDL_Color textColor = {255, 0, 0, 255}; // Changed to red color
-        const char* instructions[] = {
-            "Move : W A S D",
-            "Attack : left click",
-            "Parry : right click",
-            "Pause : ESC"
-        };
-        
-        // Create a smaller font for instructions
-        TTF_Font* smallFont = TTF_OpenFont("font/Jacquard_12/Jacquard12-Regular.ttf", 24); // Reduced from 36 to 24
-        if (smallFont) {
-            int yOffset = 20; // Starting Y position
-            for (const char* text : instructions) {
-                SDL_Surface* instructSurface = TTF_RenderText_Solid(smallFont, text, textColor);
-                if (instructSurface) {
-                    SDL_Texture* instructTexture = SDL_CreateTextureFromSurface(renderer, instructSurface);
-                    
-                    SDL_Rect instructRect;
-                    instructRect.w = instructSurface->w;
-                    instructRect.h = instructSurface->h;
-                    instructRect.x = SCREEN_WIDTH - instructRect.w - 20; // 20 pixels from right edge
-                    instructRect.y = yOffset;
-                    
-                    SDL_RenderCopy(renderer, instructTexture, NULL, &instructRect);
-                    
-                    SDL_FreeSurface(instructSurface);
-                    SDL_DestroyTexture(instructTexture);
-                    
-                    yOffset += instructRect.h + 5; // Move down for next line with 5px spacing
+        SDL_Color textColor = {255, 255, 255, 255}; // White color
+        TTF_Font* smallFont = TTF_OpenFont("font/Jacquard_12/Jacquard12-Regular.ttf", 24);
+        if (smallFont && player) {
+            int yOffset = 20;
+            Uint32 currentTime = SDL_GetTicks();
+
+            // Attack cooldown
+            std::string attackIndicator = "ATTACK : ";
+            float attackCooldownPercent = std::min(1.0f, float(currentTime - player->lastAttackTime) / GameObject::ATTACK_COOLDOWN);
+            attackIndicator += std::string(5 - int(attackCooldownPercent * 5), '*') + std::string(int(attackCooldownPercent * 5), '=');
+
+            // Parry cooldown
+            std::string parryIndicator = "PARRY  : ";
+            float parryCooldownPercent = std::min(1.0f, float(currentTime - player->lastParryTime) / GameObject::PARRY_COOLDOWN);
+            parryIndicator += std::string(5 - int(parryCooldownPercent * 5), '*') + std::string(int(parryCooldownPercent * 5), '=');
+
+            // Dash cooldown (only show after 15 enemy defeats)
+            std::string dashIndicator = "DASH   : ";
+            if (player->getEnemiesDefeated() >= GameObject::MIN_ENEMIES_FOR_DASH) {
+                // Calculate current dash cooldown
+                Uint32 currentCooldown = GameObject::BASE_DASH_COOLDOWN;
+                int excessEnemies = player->getEnemiesDefeated() - GameObject::MIN_ENEMIES_FOR_DASH;
+                if (excessEnemies > 0) {
+                    Uint32 reduction = excessEnemies * GameObject::COOLDOWN_REDUCTION_PER_ENEMY;
+                    if (reduction > GameObject::BASE_DASH_COOLDOWN) {
+                        currentCooldown = 0;
+                    } else {
+                        currentCooldown -= reduction;
+                    }
+                }
+                float dashCooldownPercent = std::min(1.0f, float(currentTime - player->lastDashTime) / currentCooldown);
+                dashIndicator += std::string(5 - int(dashCooldownPercent * 5), '*') + std::string(int(dashCooldownPercent * 5), '=');
+            } else {
+                dashIndicator += "LOCKED";
+            }
+
+            // Render each indicator
+            const char* indicators[] = {attackIndicator.c_str(), parryIndicator.c_str(), dashIndicator.c_str()};
+            for (const char* text : indicators) {
+                SDL_Surface* surface = TTF_RenderText_Solid(smallFont, text, textColor);
+                if (surface) {
+                    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+                    SDL_Rect rect;
+                    rect.w = surface->w;
+                    rect.h = surface->h;
+                    rect.x = SCREEN_WIDTH - rect.w - 20;
+                    rect.y = yOffset;
+                    SDL_RenderCopy(renderer, texture, NULL, &rect);
+                    SDL_FreeSurface(surface);
+                    SDL_DestroyTexture(texture);
+                    yOffset += rect.h + 5;
                 }
             }
             TTF_CloseFont(smallFont);

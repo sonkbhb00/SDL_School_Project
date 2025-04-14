@@ -21,6 +21,7 @@ public:
     void playRandomHitSound();
     void playMissSound();
     void playRandomParrySound();
+    void playRandomDashSound();  // Add new method for dash sounds
     void cleanup();
     void update(); // Add update method to check music state
     void setNextTrack(const char* path); // Add method to set next track
@@ -35,6 +36,7 @@ private:
     std::vector<Mix_Chunk*> soundEffects;
     std::vector<std::string> hitSoundPaths;
     std::vector<std::string> parrySoundPaths;
+    std::vector<std::string> dashSoundPaths;  // Add dash sound paths
     static AudioManager* instance;
     std::mt19937 rng;
     
