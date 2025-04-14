@@ -31,7 +31,7 @@ public:
     static const int MAP_ROWS = 64;
     static const int MAP_COLS = 64;
     static const int TILE_SIZE = 16;
-    
+
     // Screen dimensions - no longer const since they can change
     static int SCREEN_WIDTH;
     static int SCREEN_HEIGHT;
@@ -63,7 +63,7 @@ private:
     bool lockCamera;
     bool secondMusicStarted;  // Track if second music has started
     TTF_Font* font;  // Add font member
-    
+
     // Add parry text properties
     bool showParryText;
     Uint32 parryTextStartTime;
@@ -71,7 +71,7 @@ private:
     SDL_Color parryTextColor;
     int parryTextSize;
     int successfulParryCount;  // Add counter for successful parries
-    
+
     // Timer properties
     bool timerStarted;
     Uint32 timerStartTime;
@@ -105,4 +105,8 @@ private:
     bool canRestart;  // Flag to control when restart is allowed
     bool isPaused;
     SDL_Texture* pauseScreenTexture;
+
+    SDL_Texture* instructionTexture;
+    bool showInstructions;  // Flag to specifically show instructions
+
 };
