@@ -168,6 +168,7 @@ void Game::handleEvents() {
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT)
             isRunning = false;
+
         if (event.type == SDL_KEYDOWN) {
             switch (event.key.keysym.sym) {
                 case SDLK_RETURN:  // Enter key
@@ -235,6 +236,18 @@ void Game::handleEvents() {
                 return;
             }
 
+            // Handle end game screen click to resume
+            if (showEndGameScreen) {
+                    showEndGameScreen = false;
+                    isPaused = false;
+                    // Reset timer so it doesn't immediately trigger again
+                    timerStarted = false;
+                    hasStartedTimer = false;
+                    // Resume music
+                    AudioManager::getInstance().resumeMusic();
+                    return; // Important to prevent processing other mouse actions
+            }
+
             int mouseX = event.button.x + cameraX; // Add camera offset to get world coordinates
             int mouseY = event.button.y + cameraY;
             std::cout << "Mouse clicked at: (" << mouseX << ", " << mouseY << ")" << std::endl;
@@ -245,6 +258,11 @@ void Game::handleEvents() {
             else if (event.button.button == SDL_BUTTON_RIGHT) {
                 player->parry();
             }
+        }
+        if (event.type == SDL_MOUSEBUTTONDOWN && showEndGameScreen) {
+            showEndGameScreen = false;
+            isPaused = false;
+            AudioManager::getInstance().resumeMusic();
         }
     }
     const Uint8* keyState = SDL_GetKeyboardState(NULL);
@@ -512,40 +530,113 @@ void Game::update() {
     }
 
     // End game when timer runs out (only if timer has started)
-    if (timerStarted && SDL_GetTicks() - timerStartTime >= TIMER_DURATION) {
+    // Update timer only if it's started and player is alive
+    if (timerStarted && !player->permanentlyDisabled && SDL_GetTicks() - timerStartTime >= TIMER_DURATION) {
         isPaused = true;
         showEndGameScreen = true;
+        AudioManager::getInstance().pauseMusic();
+    }
+
+    // Update death count when player dies
+    if (player && player->permanentlyDisabled && !player->deathCountUpdated) {
+        // Read current death count
+        std::ifstream deathFile("deathCount.txt");
+        int deathCount = 0;
+        if (deathFile.is_open()) {
+            deathFile >> deathCount;
+            deathFile.close();
+        }
+
+        // Increment and write back
+        deathCount++;
+        std::ofstream outFile("deathCount.txt");
+        if (outFile.is_open()) {
+            outFile << deathCount;
+            outFile.close();
+        }
+
+        player->deathCountUpdated = true;
     }
 }
 
 void Game::render() {
     SDL_RenderClear(renderer);
 
-    // Render end game screen if active
-    if (showEndGameScreen) {
-        // Create semi-transparent black overlay
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 200);
-        SDL_RenderFillRect(renderer, NULL);
+    // Draw all game elements first
+    // 1. Render background layers from back to front
 
-        // Render "thank for the suffering <3" text
+    // Handle end game screen
+    if (showEndGameScreen) {
+        // Fill screen with black
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+
+        // Render "thank for the suffering <3" text and death count
         if (font) {
-            SDL_Color textColor = {255, 255, 255, 255};
-            SDL_Surface* textSurface = TTF_RenderText_Blended(font, "thank for the suffering <3", textColor);
+            SDL_Color textColor = {255, 255, 255, 255}; // White color
+
+            // Render main text
+            SDL_Surface* textSurface = TTF_RenderText_Blended(font, "thank for the suffering ⸜(｡˃ ᵕ ˂ )⸝♡", textColor);
             if (textSurface) {
                 SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
                 if (textTexture) {
+                    // Center the text
                     SDL_Rect textRect;
                     textRect.w = textSurface->w;
                     textRect.h = textSurface->h;
                     textRect.x = (SCREEN_WIDTH - textRect.w) / 2;
                     textRect.y = (SCREEN_HEIGHT - textRect.h) / 2;
+
                     SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
                     SDL_DestroyTexture(textTexture);
                 }
                 SDL_FreeSurface(textSurface);
             }
+
+            // Read and render death count
+            std::ifstream deathFile("deathCount.txt");
+            int deathCount = 0;
+            if (deathFile.is_open()) {
+                deathFile >> deathCount;
+                deathFile.close();
+            }
+
+            std::string deathText = "you died " + std::to_string(deathCount) + " times";
+            SDL_Surface* deathSurface = TTF_RenderText_Blended(font, deathText.c_str(), textColor);
+            if (deathSurface) {
+                SDL_Texture* deathTexture = SDL_CreateTextureFromSurface(renderer, deathSurface);
+                if (deathTexture) {
+                    SDL_Rect deathRect;
+                    deathRect.w = deathSurface->w;
+                    deathRect.h = deathSurface->h;
+                    deathRect.x = (SCREEN_WIDTH - deathRect.w) / 2;
+                    deathRect.y = (SCREEN_HEIGHT - deathRect.h) / 2 + 40; // Position below main text
+
+                    SDL_RenderCopy(renderer, deathTexture, NULL, &deathRect);
+                    SDL_DestroyTexture(deathTexture);
+                }
+                SDL_FreeSurface(deathSurface);
+            }
+
+            // Add "click to continue" text
+            SDL_Surface* clickSurface = TTF_RenderText_Blended(font, "click to continue", textColor);
+            if (clickSurface) {
+                SDL_Texture* clickTexture = SDL_CreateTextureFromSurface(renderer, clickSurface);
+                if (clickTexture) {
+                    SDL_Rect clickRect;
+                    clickRect.w = clickSurface->w;
+                    clickRect.h = clickSurface->h;
+                    clickRect.x = (SCREEN_WIDTH - clickRect.w) / 2;
+                    clickRect.y = (SCREEN_HEIGHT - clickRect.h) / 2 + 80; // Position below death count
+
+                    SDL_RenderCopy(renderer, clickTexture, NULL, &clickRect);
+                    SDL_DestroyTexture(clickTexture);
+                }
+                SDL_FreeSurface(clickSurface);
+            }
         }
+
+        SDL_RenderPresent(renderer);
         return;
     }
 
@@ -683,6 +774,8 @@ void Game::render() {
             SDL_DestroyTexture(textTexture);
         }
 
+
+
         // Render parry effect text if active
         if (showParryText) {
             // Calculate size based on successful parries (start at 48, increase by 12 each time)
@@ -784,6 +877,35 @@ void Game::render() {
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, fadeAlpha);
         SDL_Rect fadeRect = {-cameraX, -cameraY, MAP_COLS * TILE_SIZE, MAP_ROWS * TILE_SIZE};
         SDL_RenderFillRect(renderer, &fadeRect);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+    }
+
+    // Draw end game screen overlay and text if active - rendered last to appear on top of everything
+    if (showEndGameScreen && font) {
+        // Create semi-transparent black overlay
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 200);
+        SDL_Rect fullscreen = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+        SDL_RenderFillRect(renderer, &fullscreen);
+
+        // Render "thanks for the suffering <3" text
+        TTF_SetFontSize(font, 48);
+        SDL_Color textColor = {255, 255, 255, 255};
+        SDL_Surface* textSurface = TTF_RenderText_Blended(font, "thanks for the suffering <3", textColor);
+        if (textSurface) {
+            SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+            if (textTexture) {
+                SDL_Rect textRect = {
+                    (SCREEN_WIDTH - textSurface->w) / 2,
+                    (SCREEN_HEIGHT - textSurface->h) / 2,
+                    textSurface->w,
+                    textSurface->h
+                };
+                SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+                SDL_DestroyTexture(textTexture);
+            }
+            SDL_FreeSurface(textSurface);
+        }
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
     }
 
@@ -985,7 +1107,7 @@ void Game::render() {
                 SDL_Surface* startSurface = TTF_RenderText_Solid(startFont, "Press Enter to start", startTextColor);
                 if (startSurface) {
                     SDL_Texture* startTexture = SDL_CreateTextureFromSurface(renderer, startSurface);
-                    
+
                     SDL_Rect startRect;
                     startRect.w = startSurface->w;
                     startRect.h = startSurface->h;

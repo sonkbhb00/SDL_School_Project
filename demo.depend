@@ -10,11 +10,12 @@
 	<SDL.h>
 	"Game.hpp"
 
-1744643439 c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.hpp
+1744737973 c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.hpp
 	<SDL.h>
 	<SDL_mixer.h>
 	<SDL_ttf.h>
 	<vector>
+	<fstream>
 	"AudioManager.h"
 
 1744262773 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\combat.cpp
@@ -26,7 +27,7 @@
 
 1741667082 c:\users\bui son\onedrive\desktop\demo_sdl\demo\combat.hpp
 
-1744637765 c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.h
+1744734643 c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.h
 	<SDL.h>
 	"Game.hpp"
 
@@ -81,7 +82,7 @@
 	<SDL.h>
 	"Game.hpp"
 
-1744615597 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.cpp
+1744734652 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.cpp
 	"GameObject.h"
 	"Game.hpp"
 	"Physics.hpp"
@@ -91,7 +92,7 @@
 	<cstdlib>
 	<ctime>
 
-1744643251 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.cpp
+1744737502 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.cpp
 	"Game.hpp"
 	"GameObject.h"
 	"TextureManager.h"

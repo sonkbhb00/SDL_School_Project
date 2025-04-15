@@ -71,6 +71,7 @@ public:
     bool permanentlyDisabled;
     bool isMoving;
     bool isFlashing;
+    bool deathCountUpdated;
     
     // Timers and durations
     Uint32 attackStartTime;

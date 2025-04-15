@@ -26,6 +26,7 @@ GameObject::GameObject(int x, int y, int width, int height)
       permanentlyDisabled(false),
       isMoving(false),
       isFlashing(false),
+      deathCountUpdated(false),
       attackStartTime(0),
       attackDuration(300),
       parryStartTime(0),

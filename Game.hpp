@@ -3,6 +3,7 @@
 #include <SDL_mixer.h>
 #include <SDL_ttf.h>
 #include <vector>
+#include <fstream>
 #include "AudioManager.h"
 
 // Forward declarations
@@ -75,8 +76,7 @@ private:
     // Timer properties
     bool timerStarted;
     Uint32 timerStartTime;
-    //static const Uint32 TIMER_DURATION = 142000; // 2:22 in milliseconds (142 seconds)
-    static const Uint32 TIMER_DURATION = 14200; // 2:22 in milliseconds (142 seconds)
+    static const Uint32 TIMER_DURATION = 142000; // 2:22 in milliseconds (142 seconds)
     bool hasStartedTimer;  // Track if timer has been started after 10 defeats
 
     // Mastery animation properties
