@@ -1,16 +1,15 @@
 #ifndef COMBAT_HPP
 #define COMBAT_HPP
 
-// Forward declaration của GameObject
+// Forward declaration of GameObject
 class GameObject;
 
 namespace Combat {
-    // Hàm attack nhận con trỏ player và chỉ set trạng thái attack
+    // Sets the attack state for the player
     void attack(GameObject* player);
+    
+    // Sets the parry state
     void parry();
-    void shoot();
-    void poison();
-    void reload();
 }
 
 #endif // COMBAT_HPP

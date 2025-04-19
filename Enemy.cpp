@@ -45,8 +45,8 @@ Enemy::Enemy(const char* idleTexturePath, const char* runTexturePath, const char
       takeHitTexture(nullptr), deathTexture(nullptr), currentTexture(nullptr),
       isAttacking(false),
       attackStartTime(0),
-      attackHitboxDuration(10),  // Hitbox only active for 10ms
-      attackAnimDuration(300),    // Full attack animation duration
+      attackHitboxDuration(10),
+      attackAnimDuration(300),
       attackRange(65.0f),
       lastAttackTime(0),
       attackCooldown(1000),

@@ -16,28 +16,28 @@ public:
     Game();
     ~Game();
 
-    // Khoi tao game
+    // Initialize the game
     void init(const char* title, int xPos, int yPos, int width, int height);
 
-    // Xu ly su kien, cap nhat trang thai va render
+    // Handle events, update game state and render
     void handleEvents();
     void update();
     void render();
     void clean();
 
-    // Tra ve trang thai game (true neu game dang chay)
+    // Returns true if game is running
     bool running();
 
-    // Cac hang so cho map
+    // Map constants
     static const int MAP_ROWS = 64;
     static const int MAP_COLS = 64;
     static const int TILE_SIZE = 16;
 
-    // Screen dimensions - no longer const since they can change
+    // Screen dimensions
     static int SCREEN_WIDTH;
     static int SCREEN_HEIGHT;
 
-    // Renderer dung chung
+    // Shared renderer
     static SDL_Renderer* renderer;
 
     void spawnRandomEnemy();
@@ -47,7 +47,7 @@ public:
         fadeAlpha = 0;
     }
 
-    void restart();  // Add restart function
+    void restart();
 
 private:
     SDL_Window* window;
@@ -55,29 +55,29 @@ private:
     GameObject* player;
     std::vector<Enemy*> enemies;
     bool firstWaveDefeated;
-    int defeatedEnemyCount;  // Add counter for defeated enemies
+    int defeatedEnemyCount;
     TileMap* tileMap;
     SDL_Texture* backgroundTexture;
     SDL_Texture* foregroundTexture;
     SDL_Texture* closestTexture;
     int cameraX, cameraY;
     bool lockCamera;
-    bool secondMusicStarted;  // Track if second music has started
-    TTF_Font* font;  // Add font member
+    bool secondMusicStarted;
+    TTF_Font* font;
 
-    // Add parry text properties
+    // Parry text properties
     bool showParryText;
     Uint32 parryTextStartTime;
-    static const Uint32 PARRY_TEXT_DURATION = 1000; // 1 second in milliseconds
+    static const Uint32 PARRY_TEXT_DURATION = 1000; // 1 second
     SDL_Color parryTextColor;
     int parryTextSize;
-    int successfulParryCount;  // Add counter for successful parries
+    int successfulParryCount;
 
     // Timer properties
     bool timerStarted;
     Uint32 timerStartTime;
-    static const Uint32 TIMER_DURATION = 142000; // 2:22 in milliseconds (142 seconds)
-    bool hasStartedTimer;  // Track if timer has been started after 10 defeats
+    static const Uint32 TIMER_DURATION = 142000; // 2:22 in milliseconds
+    bool hasStartedTimer;
 
     // Mastery animation properties
     struct MasteryFrame {
@@ -89,28 +89,27 @@ private:
     Uint32 masteryStartTime;
     int masteryFrame;
     static const int MASTERY_TOTAL_FRAMES = 30;
-    static const Uint32 MASTERY_FRAME_DURATION = 100;  // 3000ms total / 30 frames = 100ms per frame
+    static const Uint32 MASTERY_FRAME_DURATION = 100;
 
     // Screen fade properties
     bool isFading;
     Uint32 fadeStartTime;
-    static const Uint32 FADE_DURATION = 3000; // Changed from 8000 to 3000 (3 seconds)
-    Uint8 fadeAlpha;  // Alpha value for fade overlay
+    static const Uint32 FADE_DURATION = 3000; // 3 seconds
+    Uint8 fadeAlpha;
 
     // Death text properties
     bool showDeathText;
     Uint32 deathTextStartTime;
-    static const Uint32 DEATH_TEXT_DURATION = 3000; // 3 seconds to reach full brightness
+    static const Uint32 DEATH_TEXT_DURATION = 3000; // 3 seconds
     Uint8 deathTextAlpha;
 
-    bool canRestart;  // Flag to control when restart is allowed
+    bool canRestart;
     bool isPaused;
     SDL_Texture* pauseScreenTexture;
 
-    SDL_Texture* instructionTexture;
-    bool showInstructions;  // Flag to specifically show instructions
-
-    // Add near other boolean flags
+    // Instructions screen properties
+    bool showInstructions;
+    SDL_Texture* instructionsTexture;
     bool showInitialInstructions;
-    bool showEndGameScreen;  // Flag to show end game screen
+    bool showEndGameScreen;
 };

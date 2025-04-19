@@ -9,6 +9,7 @@
 
 class Physics;
 
+// Enemy animation states
 enum EnemyAnimationState {
     ENEMY_IDLE,
     ENEMY_RUNNING,
@@ -25,7 +26,7 @@ public:
           int x, int y, float scale = 1.0f);
     ~Enemy();
 
-    void update(const GameObject* player); // Changed from update(const int mapData[][Game::MAP_COLS])
+    void update(const GameObject* player);
     void render();
     void render(int x, int y);
 
@@ -80,6 +81,7 @@ private:
     Uint32 lastAttackTime;
     Uint32 attackCooldown;
 
+    // Animation frame properties
     int idleTotalFrames, runTotalFrames, attackTotalFrames, takeHitTotalFrames, deathTotalFrames, currentTotalFrames;
     int idleFrameWidth, idleFrameHeight, runFrameWidth, runFrameHeight;
     int attackFrameWidth, attackFrameHeight;
@@ -87,6 +89,7 @@ private:
     int currentFrameWidth, currentFrameHeight;
     int idleAnimSpeed, runAnimSpeed, attackAnimSpeed, takeHitAnimSpeed, deathAnimSpeed, currentAnimSpeed;
 
+    // Timing properties
     Uint32 lastFrameTime;
     Uint32 takeHitStartTime;
     Uint32 takeHitDuration;
@@ -97,6 +100,7 @@ private:
     Uint32 flashDuration;
     Uint8 flashAlpha;
 
+    // Helper methods
     bool loadEnemyAnimationData(const char* path, SDL_Texture*& texture, int& totalFrames, int& frameWidth, int& frameHeight);
     void setAnimation(EnemyAnimationState newState);
     void tryAttack(const GameObject* player);

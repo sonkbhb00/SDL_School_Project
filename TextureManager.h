@@ -1,18 +1,19 @@
 #pragma once
 #include <SDL.h>
-// Include Game.hpp again if it uses Game::renderer
 #include "Game.hpp"
 
-// Forward declare Game - no longer needed if we pass renderer
-// class Game; 
-
+// Utility class to handle texture loading and rendering
 class TextureManager {
 public:
-    // loadTexture still needs the renderer to create textures
+    // Load a texture from file path
     static SDL_Texture* loadTexture(const char* filePath);
-    // draw functions now take the renderer
+    
+    // Draw a texture with given source and destination rectangles
     static void draw(SDL_Texture* texture, SDL_Rect srcRect, SDL_Rect destRect);
+    
+    // Draw a specific frame from a spritesheet
     static void drawFrame(SDL_Texture* texture, int frame, int row, int frameWidth, int frameHeight, int x, int y);
-    // cleanUp doesn't need renderer
+    
+    // Clean up all textures
     static void cleanUp();
 };

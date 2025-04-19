@@ -31,7 +31,7 @@ const Game::MasteryFrame Game::MASTERY_FRAMES[30] = {
     {670, 145, 80, 60}, {800, 145, 80, 60}, {930, 145, 80, 60}, {1060, 145, 80, 60}, {1190, 145, 80, 60}
 };
 
-Game::Game() :
+Game::Game() : 
     window(nullptr),
     isRunning(false),
     player(nullptr),
@@ -68,10 +68,9 @@ Game::Game() :
     canRestart(false),
     isPaused(false),
     pauseScreenTexture(nullptr),
-    instructionTexture(nullptr),
     showInstructions(false),
-    showInitialInstructions(true),
-    showEndGameScreen(false)
+    instructionsTexture(nullptr),
+    showInitialInstructions(true)
 { }
 
 Game::~Game() {
@@ -134,14 +133,18 @@ void Game::init(const char* title, int xPos, int yPos, int width, int height) {
         if (!pauseScreenTexture) {
             std::cout << "Failed to load pause screen texture!" << std::endl;
         }
-        // Load instruction screen
-        instructionTexture = TextureManager::loadTexture("assets/instruction.png");
-        if (!instructionTexture) {
-            std::cout << "Failed to load instruction texture!" << std::endl;
+        
+        // Load instructions texture
+        instructionsTexture = TextureManager::loadTexture("assets/instruction.png");
+        if (!instructionsTexture) {
+            std::cout << "Failed to load instructions texture!" << std::endl;
         }
-        showInitialInstructions = true;  // Show instructions at start
+        
+        showInstructions = false;  // Regular instructions flag (for F1)
+        showInitialInstructions = true;  // Show instructions at startup
         isPaused = true;  // Pause the game initially
         AudioManager::getInstance().pauseMusic();  // Pause music initially
+
         // Initialize player with size 50x50
         player = new GameObject(50, 50, 50, 50);
         if (player == nullptr) {
@@ -1060,14 +1063,14 @@ void Game::render() {
 
     // Present the rendered frame
     // 7. Render instruction screen if active
-    if (showInstructions && instructionTexture) {
+    if (showInstructions && instructionsTexture) {
         SDL_Rect destRect = {
             (SCREEN_WIDTH - 600) / 2,  // Center horizontally
             (SCREEN_HEIGHT - 400) / 2, // Center vertically
             600,
             400
         };
-        SDL_RenderCopy(renderer, instructionTexture, NULL, NULL);
+        SDL_RenderCopy(renderer, instructionsTexture, NULL, NULL);
     }
     if (font && !showDeathText) {
     SDL_Color textColor = {255, 255, 255, 255}; // White color (R,G,B,A)
@@ -1089,7 +1092,7 @@ void Game::render() {
 }
     // 8. Present renderer
     // Show initial instructions
-    if (showInitialInstructions && instructionTexture) {
+    if (showInitialInstructions && instructionsTexture) {
         // Semi-transparent black overlay
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 192);
@@ -1097,7 +1100,7 @@ void Game::render() {
         SDL_RenderFillRect(renderer, &fullscreenRect);
 
         // Render the instruction texture
-        SDL_RenderCopy(renderer, instructionTexture, NULL, NULL);
+        SDL_RenderCopy(renderer, instructionsTexture, NULL, NULL);
 
         // Add "Press Enter to start" text
         if (font) {

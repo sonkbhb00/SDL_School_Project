@@ -4,6 +4,7 @@
 
 class Physics;
 
+// Player animation states
 enum AnimationState {
     IDLE,
     RUNNING,
@@ -20,12 +21,14 @@ public:
     GameObject(int x, int y, int width = 50, int height = 50);
     virtual ~GameObject();
 
+    // Core functionality
     virtual void update();
     virtual void render();
     virtual void render(int x, int y);
     void renderSprite(int x, int y);
     void renderHitboxes(int x, int y);
 
+    // Player actions
     void move(int direction);
     void jump();
     void dash();
@@ -33,7 +36,7 @@ public:
     void parry();
     void takeHit();
 
-    // Accessors
+    // Accessors and mutators
     int getX() const { return xpos; }
     int getY() const { return ypos; }
     void setX(int x) { xpos = x; destRect.x = x; collider.x = x + (destRect.w - collider.w) / 2; }
@@ -52,7 +55,7 @@ public:
     }
     int getEnemiesDefeated() const { return enemiesDefeatedCount; }
 
-    // Public members needed by Physics/Game - order matches constructor
+    // Physics properties
     int prevX, prevY;
     float velocityX;
     float velocityY;
@@ -60,20 +63,20 @@ public:
     bool onGround;
     bool facingRight;
     
-    // Animation and State variables
+    // Animation and state flags
     AnimationState currentState;
     bool isAttacking;
     bool isParrying;
     bool isDashing;
-    bool isInvincibleDuringDash;  // Added missing field
-    bool hasParriedDuringDash;  // Track if already parried during this dash
+    bool isInvincibleDuringDash;
+    bool hasParriedDuringDash;
     bool inHitState;
     bool permanentlyDisabled;
     bool isMoving;
     bool isFlashing;
-    bool deathCountUpdated;
+    bool deathCountUpdated = false;
     
-    // Timers and durations
+    // Timing properties
     Uint32 attackStartTime;
     int attackDuration;
     Uint32 parryStartTime;
@@ -90,23 +93,22 @@ public:
 
     SDL_Rect destRect;
 
-    // Constants
-    static const Uint32 DASH_DURATION = 250;  // 250ms dash
+    // Game constants
+    static const Uint32 DASH_DURATION = 250;
     static const Uint32 ATTACK_COOLDOWN = 500;
     static const Uint32 PARRY_COOLDOWN = 250;
-    // Set dash speed to move exactly 50 pixels over the dash duration (250ms)
-    static constexpr float DASH_SPEED = 200.0f; // 50 pixels / (250ms / 1000ms) = 200 pixels per second
-    static const Uint32 BASE_DASH_COOLDOWN = 3000;  // 3 second base cooldown
-    static const Uint32 MIN_ENEMIES_FOR_DASH = 15;  // Minimum enemies needed to dash
-    static const Uint32 COOLDOWN_REDUCTION_PER_ENEMY = 500;  // 500ms reduction per enemy defeated
+    static constexpr float DASH_SPEED = 200.0f;
+    static const Uint32 BASE_DASH_COOLDOWN = 3000;
+    static const Uint32 MIN_ENEMIES_FOR_DASH = 15;
+    static const Uint32 COOLDOWN_REDUCTION_PER_ENEMY = 500;
 
 private:
     SDL_Rect srcRect;
     SDL_Rect collider;
     int currentFrame;
-    int enemiesDefeatedCount;  // Track number of enemies defeated
+    int enemiesDefeatedCount;
 
-    // Sprite animation properties
+    // Sprite and animation properties
     SDL_Texture* idleTexture;
     SDL_Texture* runTexture;
     SDL_Texture* attackTexture;
@@ -119,7 +121,7 @@ private:
     int frameHeight;
     static const int DASH_FRAMES = 4;
 
-    // Animation state
+    // Animation control
     float animationTransitionThreshold;
     Uint32 lastFrameTime;
     int animSpeed;
