@@ -1,0 +1,115 @@
+# depslib dependency file v1.0
+1744897760 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\texturemanager.cpp
+	"TextureManager.h"
+	"Game.hpp"
+	<SDL_image.h>
+	<iostream>
+	<vector>
+
+1744896030 c:\users\bui son\onedrive\desktop\demo_sdl\demo\texturemanager.h
+	<SDL.h>
+	"Game.hpp"
+
+1744896028 c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.hpp
+	<SDL.h>
+	<SDL_mixer.h>
+	<SDL_ttf.h>
+	<vector>
+	<fstream>
+	"AudioManager.h"
+
+1744896029 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\combat.cpp
+	"Combat.hpp"
+	"GameObject.h"
+	<SDL.h>
+
+1744896028 c:\users\bui son\onedrive\desktop\demo_sdl\demo\combat.hpp
+
+1744896027 c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.h
+	<SDL.h>
+	"Game.hpp"
+
+1744896969 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\enemy.cpp
+	"Enemy.h"
+	"Game.hpp"
+	"Physics.hpp"
+	<fstream>
+	<iostream>
+	<sstream>
+
+1744897760 c:\users\bui son\onedrive\desktop\demo_sdl\demo\enemy.h
+	<SDL.h>
+	"Game.hpp"
+	"TextureManager.h"
+	"Physics.hpp"
+	<string>
+	<vector>
+	<iostream>
+
+1744896029 c:\users\bui son\onedrive\desktop\demo_sdl\demo\physics.hpp
+	"GameObject.h"
+	"Enemy.h"
+	"Game.hpp"
+	<SDL.h>
+
+1744897760 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\physics.cpp
+	"Physics.hpp"
+	"GameObject.h"
+	"Enemy.h"
+	"Game.hpp"
+	<SDL.h>
+	<cmath>
+	<algorithm>
+
+1744896031 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\main.cpp
+	<SDL.h>
+	"Game.hpp"
+
+1744597305 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\tilemap.cpp
+	"TileMap.hpp"
+	"TextureManager.h"
+	"Game.hpp"
+	<SDL.h>
+	<iostream>
+	<fstream>
+
+1744896030 c:\users\bui son\onedrive\desktop\demo_sdl\demo\tilemap.hpp
+	<SDL.h>
+	"Game.hpp"
+
+1744897760 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\gameobject.cpp
+	"GameObject.h"
+	"Game.hpp"
+	"Physics.hpp"
+	<SDL.h>
+	<iostream>
+	<cmath>
+	<cstdlib>
+	<ctime>
+
+1744897760 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\game.cpp
+	"Game.hpp"
+	"GameObject.h"
+	"TextureManager.h"
+	"TileMap.hpp"
+	"Combat.hpp"
+	"Physics.hpp"
+	"Enemy.h"
+	<SDL_image.h>
+	<iostream>
+	<algorithm>
+	<cmath>
+	<random>
+
+1744896027 c:\users\bui son\onedrive\desktop\demo_sdl\demo\audiomanager.h
+	<SDL.h>
+	<SDL_mixer.h>
+	<string>
+	<iostream>
+	<vector>
+	<random>
+
+1744897760 source:c:\users\bui son\onedrive\desktop\demo_sdl\demo\audiomanager.cpp
+	"AudioManager.h"
+	<random>
+
