@@ -69,11 +69,24 @@ Knight Fight!? là một trò chơi 2D hành động kết hợp yếu tố chi�
 
 Phiên bản hiện tại: 1.0
 
-## Credits
+## Nguồn Tài Nguyên & Credits
 
 - Developed by: Bui Son
 - Framework: SDL2
 - Âm thanh và hình ảnh: Nguồn mở và được sửa đổi để phù hợp với trò chơi
+
+### Nguồn Tài Nguyên
+- [itch.io](https://itch.io/) - Nguồn sprite và tài nguyên đồ họa
+- [ElevenLabs Sound Effects](https://elevenlabs.io/sound-effects) - Hiệu ứng âm thanh
+- [Pixabay](https://pixabay.com/) - Nhạc nền "Medieval Star"
+- [League of Legends Wiki](https://leagueoflegends.fandom.com/) - Âm thanh kỹ năng lướt (Yasuo)
+- [Carl Birch YouTube Channel](https://www.youtube.com/@CarlBirch) - Tham khảo kỹ thuật
+
+### Công Cụ Hỗ Trợ
+- [GitHub Copilot](https://github.com/features/copilot) - Hỗ trợ lập trình
+- [ChatGPT](https://chatgpt.com/) - Hỗ trợ giải quyết vấn đề
+- [Google Gemini](https://gemini.google.com/) - Hỗ trợ lập trình và tìm kiếm
+- [Remove.bg](https://www.remove.bg/) - Công cụ xử lý hình ảnh
 
 ---
 
@@ -146,8 +159,21 @@ Knight Fight!? is a 2D action game combining combat and reflex elements. Players
 
 Current version: 1.0
 
-## Credits
+## Resources & Credits
 
 - Developed by: Bui Son
 - Framework: SDL2
 - Audio and visuals: Open source and modified for the game
+
+### Resources
+- [itch.io](https://itch.io/) - Sprites and graphic resources
+- [ElevenLabs Sound Effects](https://elevenlabs.io/sound-effects) - Sound effects
+- [Pixabay](https://pixabay.com/) - "Medieval Star" background music
+- [League of Legends Wiki](https://leagueoflegends.fandom.com/) - Dash ability sounds (Yasuo)
+- [Carl Birch YouTube Channel](https://www.youtube.com/@CarlBirch) - Technical references
+
+### Tools
+- [GitHub Copilot](https://github.com/features/copilot) - Programming assistance
+- [ChatGPT](https://chatgpt.com/) - Problem-solving assistance
+- [Google Gemini](https://gemini.google.com/) - Programming and search assistance
+- [Remove.bg](https://www.remove.bg/) - Image processing tool
